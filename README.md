@@ -30,15 +30,23 @@ Features:
 
 The following are samples of the output of the script.
 
+### Selection Table
+![top-portrait](./img/top-portrait.png)
+
 #### Portrait
-| | | |
-|![top-portrait](./img/top-portrait.png)|![event-portrait](./img/event-portrait.png)|[wave-portrait](./img/wave-portrait.png)|
+
+
+![event-portrait](./img/event-portrait.png) ![wave-portrait](./img/wave-portrait.png)
 | | | |
 
-#### Landscape
-| | | |
-|![event-landscape](./img/event-landscape.png)|![wave-landscape](./img/wave-landscape.png)|[wave-portrait](./img/search-landscape-portrait.png)|
-| | | |
+### Landscape
+
+![event-landscape](./img/event-landscape.png)
+![wave-landscape](./img/wave-landscape.png)
+
+### Search
+|[wave-portrait](./img/search-landscape-portrait.png)
+
 
 
 
