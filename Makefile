@@ -6,7 +6,7 @@ DATES = $(wildcard *.date)
 HTML = $(DATES:.date=.html)
 
 %.html: %.date
-	python3 startlist-runner.py --date $(<:.date=) 
+	python3 startlist-runner.py --date racedb.wg --date $(<:.date=) 
 
 
 all:

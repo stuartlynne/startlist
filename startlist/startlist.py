@@ -26,14 +26,14 @@ def cur_execute(cur, query, params):
     log_sql(query, params)
     cur.execute(query, params)
 
-def export_startlists(date=None, name=None, output_format='xlsx'):
+def export_startlists(host='localhost', date=None, name=None, output_format='xlsx'):
     try:
         # Connect to PostgreSQL database
         conn = psycopg2.connect(
             dbname="racedb",
             user="postgres",
             password="5wHYUQ9qmttpq58EV4EG",
-            host="localhost",
+            host=host,
             port="5432"
         )
         cur = conn.cursor()
@@ -138,6 +138,7 @@ def export_startlists(date=None, name=None, output_format='xlsx'):
 
 def main():
     parser = argparse.ArgumentParser(description="Export start lists for a RaceDB competition.")
+    parser.add_argument('--host', type=str, default='localhost', help='database host')
     parser.add_argument('--date', type=str, help='Start date of the competition in YYYY-MM-DD format.')
     parser.add_argument('--name', type=str, help='Name of the competition.')
     parser.add_argument('--xlsx', action='store_true', help='Generate XLSX output')
@@ -146,7 +147,7 @@ def main():
     args = parser.parse_args()
 
     output_format = 'xlsx' if args.xlsx else 'html'
-    export_startlists(date=args.date, name=args.name, output_format=output_format)
+    export_startlists(args.host, date=args.date, name=args.name, output_format=output_format)
 
 if __name__ == "__main__":
     main()
