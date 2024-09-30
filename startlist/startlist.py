@@ -68,7 +68,7 @@ def export_startlists(date=None, name=None, output_format='xlsx'):
 
             # Query for all waves for the event
             #cur_execute(cur, "SELECT id, name, date_time FROM core_eventmassstart WHERE competition_id = %s;", (competition_id,))
-            cur_execute(cur, "SELECT id, name, start_offset FROM core_wave WHERE event_id = %s;", (event_id,))
+            cur_execute(cur, "SELECT id, name, start_offset, distance, laps, minutes FROM core_wave WHERE event_id = %s;", (event_id,))
             waves = cur.fetchall()
 
             # Sort waves by start_offset
@@ -77,9 +77,8 @@ def export_startlists(date=None, name=None, output_format='xlsx'):
 
             # Query for Waves and their Categories
             # For each wave, fetch its categories and the participants in those categories
-            for wave_id, wave_name, start_offset in waves_sorted:
+            for wave_id, wave_name, start_offset, distance, laps, minutes in waves_sorted:
 
-                generator.add_wave(wave_name, start_offset)
 
                 cur_execute(cur, """
                     SELECT c.id, c.code, c.gender, c.description
@@ -88,6 +87,7 @@ def export_startlists(date=None, name=None, output_format='xlsx'):
                     WHERE wcat.wave_id = %s;
                 """, (wave_id,))
                 categories = cur.fetchall()
+                generator.add_wave(wave_name, start_offset, distance, laps, minutes, categories)
                 log_debug(f"Categories found for wave {wave_name}: {categories}")
 
                 # Now, find participants for each category within the wave

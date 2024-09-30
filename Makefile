@@ -6,13 +6,17 @@ DATES = $(wildcard *.date)
 HTML = $(DATES:.date=.html)
 
 %.html: %.date
-	startlists --date $(<:.date=) 
+	python3 startlist-runner.py --date $(<:.date=) 
 
 
 all:
 	@echo "make sdist | install | uninstall | bdist"
 
-test: $(HTML)
+test:
+	@echo $(DATES)
+	@echo $(HTML)
+
+lists: $(HTML)
 
 clean:
 	rm -f */*pyc
@@ -32,3 +36,6 @@ install-support:
 
 uninstall:
 	pip3 uninstall qlmux
+
+sync:
+	aws s3 sync --region us-west-2 . s3://wimseyraceresults/2024/testing --exclude='*' --include='*.html'
