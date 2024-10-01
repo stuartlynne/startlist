@@ -7,6 +7,12 @@ from .genhtml import GenHTML
 
 __version__ = "0.1.0"
 
+
+def format_date(input_date):
+    if len(input_date) == 8 and input_date.isdigit():
+        return f"{input_date[:4]}-{input_date[4:6]}-{input_date[6:]}"
+    return input_date
+
 def remove_tzinfo(dt):
     """Removes timezone info from datetime objects."""
     if isinstance(dt, datetime) and dt.tzinfo is not None:
@@ -146,8 +152,10 @@ def main():
 
     args = parser.parse_args()
 
+    formatted_date = format_date(args.date) if args.date else None
+
     output_format = 'xlsx' if args.xlsx else 'html'
-    export_startlists(args.host, date=args.date, name=args.name, output_format=output_format)
+    export_startlists(args.host, date=formatted_date, name=args.name, output_format=output_format)
 
 if __name__ == "__main__":
     main()
