@@ -2,11 +2,17 @@ import sys
 from yattag import Doc, indent
 from datetime import datetime
 from collections import Counter
-from .js import js
-from .css import css
 from .genright import GenRight
 from .genleft import GenLeft
 
+from .js import js
+from .bib import bib
+from .cookies import cookies
+from .notes import notes
+from .reload import reload
+from .toggle import toggle
+
+from .css import css
 
 class GenHTML:
 
@@ -95,7 +101,15 @@ class GenHTML:
 
                 # Link to the external JavaScript file for sorting and table toggling
                 #self.doc.asis('<script src="startlist.js"></script>')
-                self.doc.asis(js)
+                #self.doc.asis(js)
+                with self.tag('script'):
+                    self.doc.asis(js)
+                    self.doc.asis(bib)
+                    self.doc.asis(cookies)
+                    self.doc.asis(notes)
+                    self.doc.asis(reload)
+                    self.doc.asis(toggle)
+
                 #self.doc.asis('.tr.highlight { background-color: #f1f1f1; }')
                 #self.doc.asis('.tr.highlight { background-color: yellow; }')
 
