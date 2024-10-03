@@ -16,19 +16,36 @@ from .css import css
 
 class GenHTML:
 
-    # return event_selection_cell_id, event_info_id, wave_table_all_id
-    def info_table_ids(self, event_id):
-        event_info_cell_id = f"select_{event_id}_cell".replace('-','_').replace(' ', '_').replace('.','')
-        event_info_id = f"{event_id}-info".replace('-','_').replace(' ', '_').replace('.','')
-        wave_table_all_id = f"{event_id}_wave_all".replace('-','_').replace(' ', '_').replace('.','')
-        return event_info_cell_id, event_info_id, wave_table_all_id
+    def clean_id(self, id):
+        return id.replace('-','_').replace(' ', '_').replace('.','')
 
-    # return wave_selection_cell_id, wave_table_id
-    def wave_table_ids(self, event_id, wave_name, count,):
-        wave_selection_cell_id = f"wave_{event_id}_cell_{count}".replace('-','_').replace(' ', '_').replace('.','')
-        wave_table_id = f"{event_id}_{wave_name}".replace('-','_').replace(' ', '_').replace('.','').lower()
-        return wave_selection_cell_id, wave_table_id
+    #def event_selection_td_id(self, event_id):
+    #    return self.clean_id(f"select_{event_id}_td")
 
+    def wave_selection_tr_id(self, event_id):
+        return self.clean_id(f"select_{event_id}")
+
+    def wave_table_id(self, event_id, wave_name):
+        return self.clean_id(f"{event_id}_{wave_name}".lower())
+
+    def wave_table_all_id(self, event_id):
+        return self.clean_id(f"{event_id}_wave_all")
+
+    def event_info_cell_id(self, event_id):
+        return self.clean_id(f"select_{event_id}_cell")
+
+    def event_info_id(self, event_id):
+        return self.clean_id(f"{event_id}-info")
+
+    def wave_table_row_id(self, event_id, wave_name, bib):
+        return self.clean_id(f"wave_table_row_{event_id}_{wave_name}_{bib}")
+
+    def wave_table_note_id(self, event_id, wave_name, bib):
+        return self.clean_id(f"wave_table_note_{event_id}_{wave_name}_{bib}")
+
+    def wave_table_input_id(self, event_id, wave_name, bib):
+        return self.clean_id(f"wave_table_input_{event_id}_{wave_name}_{bib}")
+         
 
     def __init__(self, competition_name, competition_date):
         self.competition_name = competition_name

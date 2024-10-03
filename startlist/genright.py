@@ -45,11 +45,15 @@ class GenRight:
 
     def _generate_wave_row(self, event, wave_name, participant):
 
-
         bib = str(participant['bib']) if participant['bib'] else ''
+        all == bool(wave_name)
 
-        with self.tag('tr', klass='participant-tr fs-s', 
-                style=f"height=5px;", onclick=f"toggleBib('{bib}')", ):
+        wave_table_row_id = self.parent.wave_table_row_id(event, wave_name, bib)
+        wave_table_note_id = self.parent.wave_table_note_id(event, wave_name, bib)
+        wave_table_input_id = self.parent.wave_table_input_id(event, wave_name, bib)
+
+        with self.tag('tr', klass='participant-tr fs-s', id=wave_table_row_id,
+                style=f"height=5px;", onclick=f"toggleBib('{bib}', '{wave_table_note_id}')", ):
             if event:
                 with self.tag('td', klass='participant-thtd fs-xl', style='text-align: center; width:24px;", '):
                     self.doc.asis('<b>')
@@ -61,7 +65,8 @@ class GenRight:
             with self.tag('td', klass='participant-thtd fs-xl', style='text-align: center; width:28px;margin-right:10px", '):
                 self.text(' ')
 
-            with self.tag('td', klass='participant-thtd', style="text-align: left;margin-left: %s; " % ('50px' if event else '50px'), ):
+            with self.tag('td', klass='participant-thtd', 
+                          style="text-align: left;margin-left: %s; " % ('50px' if event else '50px'), ):
                 self.text(f"{str(participant['last_name']).upper()}, {str(participant['first_name'])}")
 
             with self.tag('td', klass='participant-thtd', style="text-align:left; ;  ", ):
@@ -70,12 +75,24 @@ class GenRight:
             with self.tag('td', klass='participant-thtd', style="text-align:left;", ):
                 self.text(str(participant['category_code']) if participant['category_code'] else '')
 
+        # Note row (initially hidden)
+        with self.tag('tr', klass='participant-tr fs-s', style=f"display:none; width: 100%;", id=f"{wave_table_note_id}", ):
+            with self.tag('td', klass='participant-thtd fs-xl', colspan=6, style='text-center: left; width: 100%; padding: 1px;', ):
+                with self.tag('div', style='position: relative; width: 100%;'):
+                    with self.tag('input', id=wave_table_input_id, 
+                                  style='width: 98%; height: 100%; padding: 1px; border: 1px solid #ccc; border-radius: 4px; ',
+                                  type='text', placeholder=f'Competition note for {bib}',
+                                  onkeypress=f"handleNoteKeyPress(event, '{bib}', '{wave_table_input_id}')",
+                                  onkeydown=f"handleNoteKeyDown(event, '{bib}', '{wave_table_input_id}')",
+                                  onblur=f"saveNoteData('{bib}', '{wave_table_input_id}')", ):
+                        pass 
+
     def generate_right(self):
         # Right container for event and wave tables
         with self.tag('div', klass='right'):
             # Generate the Event Wave tables
             for event_id, event_info in self.parent.data.items():
-                event_info_cell_id, event_info_id, wave_table_all_id = self.parent.info_table_ids(event_id)
+                wave_table_all_id = self.parent.wave_table_all_id(event_id)
                 print(f"Generating event table with ID: {event_id} {wave_table_all_id}")
                 
                 print(f"Generating all waves table with ID: {wave_table_all_id}")
@@ -102,9 +119,9 @@ class GenRight:
             for event_id, event_info in self.parent.data.items():
                 event_name = event_id.replace("event-", "").replace("_", " ").replace('Race ','').title()
                 for i, (wave_name, wave_data) in enumerate(event_info['waves'].items()):
-                    #wave_table_id = f"wave-table-{event_id}-{wave_name.replace(' ', '_')}"
-                    #wave_table_id = f"{self.wave_table_id(event_id, wave_name)}-wave"
-                    wave_selection_id, wave_table_id = self.parent.wave_table_ids(event_id, wave_name, i)
+
+                    wave_table_id = self.parent.wave_table_id(event_id, wave_name)
+                    wave_table_all_id = self.parent.wave_table_all_id(event_id)
                     print(f"Generating wave table with ID: {event_id} {wave_table_id} {wave_table_all_id}")
 
                     categories = set([participant['category_code'] for participant in wave_data['participants']])
@@ -121,5 +138,5 @@ class GenRight:
                         with self.tag('tbody', klass='participant-tbody',
                                       style='width:100%;'):
                             for participant in wave_data['participants']:
-                                self._generate_wave_row(None, False, participant)
+                                self._generate_wave_row(None, None, participant)
 

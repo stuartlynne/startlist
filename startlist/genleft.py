@@ -38,10 +38,11 @@ class GenLeft:
     def _generate_event_info_row(self, count, event_id, wave_name, start_offset, laps, minutes, distance, categories, participant_counts):
 
         #event_info_cell_id, event_info_id, wave_table_all_id = self.parent.info_table_ids(event_id)
-        wave_selection_cell_id, wave_table_id = self.parent.wave_table_ids(event_id, wave_name, count)
-        with self.tag('tr', klass='participant-tr fs-s', id=wave_selection_cell_id,
+        wave_selection_tr_id = self.parent.wave_selection_tr_id(event_id, )
+        wave_table_id = self.parent.wave_table_id(event_id, wave_name)
+        with self.tag('tr', klass='participant-tr fs-s', id=wave_selection_tr_id,
                       style='; height=5px; width:100% ', 
-                      onclick=f"toggleWaveTable(['{wave_selection_cell_id}', null, '{wave_table_id}'])", 
+                      onclick=f"toggleWaveTable(['{wave_selection_tr_id}', null, '{wave_table_id}'])", 
                       ):
 
             with self.tag('td', klass='participant-thtd fs-xl', style='text-align: center; width:28px;", '):
@@ -52,10 +53,6 @@ class GenLeft:
                 start_mmss = "%d:%02d" % (start_offset // 60,start_offset % 60)
                 self.text(start_mmss)
 
-                #for header in ['Laps', 'Minutes', 'Distance']:  
-                #    with self.tag('th', klass='participant-thtd', style="text-align: center; vertical-align: middle", ):
-                #        self.text(header)
-                
             with self.tag('td', klass='participant-thtd', style="text-align:left; ;  ", ):
                 self.text('')
 
@@ -95,63 +92,39 @@ class GenLeft:
                         self.doc.asis('<b>')
                         self.doc.text(f'{self.parent.competition_name}')
 
+                    with self.tag('td', klass='fs-l', style='text-align: right; padding: 2px; background-color: white; '):
+                        self.doc.text('')
 
-                    #<td class="fs-m" 
-                    #    rowspan="2" 
-                    #    style="text-align: right; position: relative;">
-                    #    <input inputmode="numeric" 
-                    #    class="fs-20px clearable" 
-                    #    type="text" id="bibInput" 
-                    #    style="width: 80px; padding: 2px; 
-                    #    text-align: center; 
-                    #    background-color#: white;" 
-                    #    maxlength="5" placeholder="Bib #" 
-                    #    onkeypress="return isNumber(event)" 
-                    #    onkeydown="handleKeyDown(event)" 
-                    #     onblur="searchBibNumber(false)">
-                    #    <span class="clear-button" onclick="clearInput()">X</span>
-                    #</td>
-
-
-                    if False:
-                        with self.tag('td', klass='fs-m', rowspan=2, style='text-align: right; '):
+                    with self.tag('td', klass='fs-m', rowspan=2, style='text-align: right; position: relative;'):
+                        with self.tag('div', style='position: relative; display: inline-block; width: 80px;'):
                             with self.doc.tag('input', 
-                                      style='width: 80px; padding: 2px; text-align: center; background-color: white;', 
-                                      inputmode="numeric", klass='fs-20px', type='search', id='bibInput', 
-                                      maxlength='5', placeholder='Bib #', 
-                                      onkeypress='return isNumber(event)', onkeydown='handleKeyDown(event)',
-                                      onblur="searchBibNumber(false)"): pass
-                        #with self.tag('td', klass='fs-m', rowspan=1, style='text-align: right; '):
-                        #    with self.doc.tag('input', klass='clear-button', onclick='clearInput()'):
-                        #        self.text('X')
-                    else:
-
-                        with self.tag('td', klass='fs-m', rowspan=2, style='text-align: right; position: relative;'):
-                            with self.tag('div', style='position: relative; display: inline-block; width: 80px;'):
-                                with self.doc.tag('input', 
-                                                  style='width: 100%; padding: 2px; text-align: center; background-color: white;',
-                                                  inputmode="numeric", 
-                                                  klass='fs-20px', 
-                                                  type='text',  # Changed 'search' to 'text'
-                                                  id='bibInput', 
-                                                  maxlength='5', 
-                                                  placeholder='Bib #', 
-                                                  onkeypress='return isNumber(event)', 
-                                                  onkeydown='handleKeyDown(event)', 
-                                                  onblur="searchBibNumber(false)"):
-                                    pass
-                        with self.tag('td', klass='fs-m', rowspan=2, 
-                                      style='text-align: right; position: relative;max-width: 20px; padding: 2px; '):
-                                # Adjust the clear button's position for smaller screens
-                                with self.doc.tag('span', klass='clear-button', 
-                                                  style='position: absolute; right: 5px; top: 50%; transform: translateY(-50%); cursor: pointer; z-index: 10;', 
-                                                  onclick='clearInput()'):
-                                    self.text('X')
+                                              style='width: 100%; padding: 2px; text-align: center; background-color: white;',
+                                              inputmode="numeric", 
+                                              klass='fs-20px', 
+                                              type='text',  # Changed 'search' to 'text'
+                                              id='bibInput', 
+                                              maxlength='5', 
+                                              placeholder='Bib #', 
+                                              onkeypress='return isNumber(event)', 
+                                              onkeydown='handleKeyDown(event)', 
+                                              onblur="searchBibNumber(false)"):
+                                pass
+                    with self.tag('td', klass='fs-m', rowspan=2, 
+                                  style='text-align: right; position: relative;max-width: 20px; padding: 2px; '):
+                            # Adjust the clear button's position for smaller screens
+                            with self.doc.tag('span', klass='clear-button', 
+                                              style='position: absolute; right: 5px; top: 50%; transform: translateY(-50%); cursor: pointer; z-index: 10;', 
+                                              onclick='clearInput()'):
+                                self.text('X')
 
 
                 with self.tag('tr', ):
                     with self.tag('td', klass='participant-thtd fs-6m', style='text-align: left; padding: 2px; '):
                         self.text(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+                    with self.tag('td', klass='participant-thtd fs-6m', style='text-align: right; padding: 2px; '):
+                        with self.tag('span', klass='fs-m', style='cursor: pointer; ', 
+                                      onclick=f"downloadNotes('{self.parent.competition_name}', '2024-09-23')"):
+                            self.text('Share')
 
             # XXX
             # We need to generate and tag the event and wave information lines, they
@@ -175,7 +148,11 @@ class GenLeft:
                         for event_id, event_info in self.parent.data.items():
                             #print(f"Generating event row for {event_id} info {event_info}", file=sys.stderr)
                             event_name = event_info['name'].replace("#", "")+'.'
-                            event_info_cell_id, event_info_id, wave_table_all_id = self.parent.info_table_ids(event_id)
+                            #XXevent_info_cell_id, XXevent_info_id, XXwave_table_all_id = self.parent.info_table_ids(event_id)
+
+                            event_info_cell_id = self.parent.event_info_cell_id(event_id)
+                            event_info_id = self.parent.event_info_id(event_id)
+                            wave_table_all_id = self.parent.wave_table_all_id(event_id)
                             print(f"Generating event row for {event_id} info {event_info} {event_info_cell_id} {event_info_id} {wave_table_all_id}", 
                                   file=sys.stderr)
                             #with self.tag('td', klass="select-thtd", style="text-align:left",):
@@ -187,7 +164,10 @@ class GenLeft:
             # Generate the Event Information table 
             for event_id, event_info in self.parent.data.items():
 
-                event_info_cell_id, event_info_id, wave_table_all_id = self.parent.info_table_ids(event_id)
+                #event_info_cell_id, event_info_id, wave_table_all_id = self.parent.info_table_ids(event_id)
+                event_info_cell_id = self.parent.event_info_cell_id(event_id)
+                event_info_id = self.parent.event_info_id(event_id)
+                wave_table_all_id = self.parent.wave_table_all_id(event_id)
 
                 # Event table with all waves
                 with self.tag('table', klass="table table-striped tablesorter participant-table", style="display:none; padding: 1px; width:100%;",

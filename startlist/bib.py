@@ -19,7 +19,7 @@ function highlightBibNumber(bibNumber, highlightColor, setFlag, debug = false) {
                 console.log('searchBibNumber: innerText:', bibCell.innerText);
             }
             if (bibCell.innerText === bibNumber) {
-                console.log('searchBibNumber: %s found table: %s row: %d id: %s XXX', bibNumber, table.id, i, rows[i].id);
+                //console.log('searchBibNumber: %s found table: %s row: %d id: %s XXX', bibNumber, table.id, i, rows[i].id);
                 foundFlag = true;
                 rows[i].querySelectorAll('td').forEach(function(td) {
                     if (!setFlag) { setFlag = td.style.backgroundColor === 'white'; }
@@ -33,19 +33,19 @@ function highlightBibNumber(bibNumber, highlightColor, setFlag, debug = false) {
 }
 
 let bigHighlighted = [];
-function toggleBib(bibId) {
-    toggleNoteRow(bibId);
+function toggleBib(bib, noteId) {
     console.log('toggleBib:', bib);
     if (bib) {
         if (bigHighlighted.includes(bib)) {
             bigHighlighted = bigHighlighted.filter(item => item !== bib);
-            highlightBibNumber(bib, 'beige', false, true);
+            highlightBibNumber(bib, 'beige', false, false);
         } else {
             bigHighlighted.push(bib);
-            highlightBibNumber(bib, 'beige', true, true);
+            highlightBibNumber(bib, 'beige', true, false);
         }
         setCookie("bibHighlighted", JSON.stringify(bigHighlighted), 7);  // Set new cookie
     }
+    toggleNoteRow(bib, noteId);
 }
 
 
@@ -60,6 +60,8 @@ function isNumber(evt) {
 }
 // handle keydown event
 function handleKeyDown(evt) {
+    var bibNumber = document.getElementById("bibInput").value;
+    console.log('heandleKeyDown: %s', bibNumber);
     console.log('heandleKeyDown: %s', evt.which);
     if (evt.key === 'Enter') {
         console.log('heandleKeyDown: Enter');
@@ -78,7 +80,7 @@ function clearInput() {
 var lastBibNumber = null;
 function searchBibNumber(reset) {
     var bibNumber = document.getElementById("bibInput").value;
-    console.log('Searching for bib number:', bibNumber);
+    //console.log('Searching for bib number:', bibNumber);
 
     if (!bibNumber || bibNumber === "") {
         if (!lastBibNumber) { return; }
