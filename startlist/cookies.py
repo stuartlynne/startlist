@@ -1,18 +1,18 @@
 cookies = """
 function setCookie(cname, cvalue, exdays) {
-    console.log('setCookie: cname:', cname);
+    const pagePath = window.location.pathname;  // Get the current page path
+    const fullCookieName = pagePath + "_" + cname;  // Add page path to cookie name
     const d = new Date();
-    d.setTime(d.getTime() + (exdays*24*60*60*1000));
+    d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
     let expires = "expires=" + d.toUTCString();
-    //cookie = "lastSelectedCell=" + cvalue + ";" + expires + ";path=/";
-    cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+    const cookie = fullCookieName + "=" + cvalue + ";" + expires + ";path=/";
     console.log('setCookie: set cookie:', cookie);
-    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
-    let decodedCookie = decodeURIComponent(document.cookie);
-    return "";
+    document.cookie = cookie;
 }
 function getCookie(cname) {
-    let name = cname + "=";
+    const pagePath = window.location.pathname;  // Get the current page path
+    const fullCookieName = pagePath + "_" + cname;  // Add page path to cookie name
+    let name = fullCookieName + "=";
     let decodedCookie = decodeURIComponent(document.cookie);
     console.log('getCookie: decoded cookie:', decodedCookie);
     let ca = decodedCookie.split(';');

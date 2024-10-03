@@ -17,74 +17,74 @@ class GenRight:
         #if header1:
         #    self.text(header1)
         if header1:
-            with self.tag('tr', klass='participant-tr', style="line-height: 1.5; ",):
-                with self.tag('th', klass='participant-thtd fs-m', style="text-align: left;", colspan=3 if event else 3, ):
+            with self.tag('tr', klass='participant-tr-15',):
+                with self.tag('th', klass='thtd fs-m', style="text-align: left;", colspan=3 if event else 3, ):
                     self.text(header1)
                 if header2:
-                    with self.tag('th', klass='participant-thtd fs-s', style="text-align: left;", colspan=2 if event else 1, ):
+                    with self.tag('th', klass='thtd fs-s', style="text-align: left;", colspan=2 if event else 1, ):
                         self.text(header2)
 
-        with self.tag('tr', klass="participant-tr", style="line-height: 1.5;",):
+        with self.tag('tr', klass="participant-tr-15", ):
             #if event:
-            #    with self.tag('th', klass='participant-thtd', style="text-align: right; width:.m", ):
+            #    with self.tag('th', klass='thtd', style="text-align: right; width:.m", ):
             #        self.text('')
 
-            with self.tag('th', klass='participant-thtd', style="text-align: center; vertical-align: middle", colspan=3 if event else 2, ):
+            with self.tag('th', klass='thtd', colspan=3 if event else 2, ):
                 self.text('Bib')
 
-            with self.tag('th', klass='participant-thtd', 
+            with self.tag('th', klass='thtd', 
                             style="text-align: left; vertical-align: middle; margin-left: %s; " % ('10px' if event else '1px'), ):
                 self.text('Name')
 
-            with self.tag('th', klass='participant-thtd', style="text-align: left; vertical-align: middle;", ):
+            with self.tag('th', klass='thtd', style="text-align: left; vertical-align: middle;", ):
                 self.text('Team')
 
-            with self.tag('th', klass='participant-thtd', style="text-align: left; ", ):
+            with self.tag('th', klass='thtd', style="text-align: left; ", ):
                 self.text('Category')
 
 
-    def _generate_wave_row(self, event, wave_name, participant):
+    def _generate_wave_row(self, event, event_id, wave_name, participant):
 
         bib = str(participant['bib']) if participant['bib'] else ''
         all == bool(wave_name)
 
-        wave_table_row_id = self.parent.wave_table_row_id(event, wave_name, bib)
-        wave_table_note_id = self.parent.wave_table_note_id(event, wave_name, bib)
-        wave_table_input_id = self.parent.wave_table_input_id(event, wave_name, bib)
+        wave_table_row_id = self.parent.wave_table_row_id(event_id, wave_name, bib)
+        wave_table_note_id = self.parent.wave_table_note_id(event_id, wave_name if event else '', bib)
+        wave_table_input_id = self.parent.wave_table_input_id(event_id, wave_name, bib)
 
         with self.tag('tr', klass='participant-tr fs-s', id=wave_table_row_id,
-                style=f"height=5px;", onclick=f"toggleBib('{bib}', '{wave_table_note_id}')", ):
+                onclick=f"TB('{bib}', '{wave_table_note_id}')", ):
             if event:
-                with self.tag('td', klass='participant-thtd fs-xl', style='text-align: center; width:24px;", '):
+                with self.tag('td', klass='thtd-28 fs-xl', ):
                     self.doc.asis('<b>')
                     self.text(wave_name if wave_name else '_')
 
-            with self.tag('td', klass='participant-thtd fs-xl', style='text-align: center; width:28px;margin-right:10px", '):
+            with self.tag('td', klass='thtd-28 fs-xl', ):
                 self.doc.asis('<b>')
                 self.text(bib)
-            with self.tag('td', klass='participant-thtd fs-xl', style='text-align: center; width:28px;margin-right:10px", '):
+            with self.tag('td', klass='thtd-28 fs-xl', ):
                 self.text(' ')
 
-            with self.tag('td', klass='participant-thtd', 
-                          style="text-align: left;margin-left: %s; " % ('50px' if event else '50px'), ):
+            with self.tag('td', klass='thtd-left', ):
                 self.text(f"{str(participant['last_name']).upper()}, {str(participant['first_name'])}")
 
-            with self.tag('td', klass='participant-thtd', style="text-align:left; ;  ", ):
+            with self.tag('td', klass='thtd-left', ):
                 self.text(str(participant['team_name']) if participant['team_name'] else '')
 
-            with self.tag('td', klass='participant-thtd', style="text-align:left;", ):
+            with self.tag('td', klass='thtd-left', ):
                 self.text(str(participant['category_code']) if participant['category_code'] else '')
 
         # Note row (initially hidden)
-        with self.tag('tr', klass='participant-tr fs-s', style=f"display:none; width: 100%;", id=f"{wave_table_note_id}", ):
-            with self.tag('td', klass='participant-thtd fs-xl', colspan=6, style='text-center: left; width: 100%; padding: 1px;', ):
-                with self.tag('div', style='position: relative; width: 100%;'):
-                    with self.tag('input', id=wave_table_input_id, 
-                                  style='width: 98%; height: 100%; padding: 1px; border: 1px solid #ccc; border-radius: 4px; ',
-                                  type='text', placeholder=f'Competition note for {bib}',
-                                  onkeypress=f"handleNoteKeyPress(event, '{bib}', '{wave_table_input_id}')",
-                                  onkeydown=f"handleNoteKeyDown(event, '{bib}', '{wave_table_input_id}')",
-                                  onblur=f"saveNoteData('{bib}', '{wave_table_input_id}')", ):
+        with self.tag('tr', klass='participant-note fs-s', id=f"{wave_table_note_id}", ):
+            #with self.tag('td', klass='thtd fs-xl', colspan=6, style='text-center: left; padding: 1px;', ):
+            with self.tag('td', klass='thtd fs-xl', colspan=6, ):
+                with self.tag('div', klass='div-note', ):
+                    with self.tag('input', klass='note-input', id=wave_table_input_id, 
+                                  type='text', 
+                                  #placeholder=f'Competition note for {bib}',
+                                  onkeypress=f"HNKP(event, '{bib}', '{wave_table_input_id}')",
+                                  onkeydown=f"HNKD(event, '{bib}', '{wave_table_input_id}')",
+                                  onblur=f"SND('{bib}', '{wave_table_input_id}')", ):
                         pass 
 
     def generate_right(self):
@@ -113,7 +113,7 @@ class GenRight:
                                   style='width:100%;' ):
                         for wave_name, wave_data in event_info['waves'].items():
                             for participant in wave_data['participants']:
-                                self._generate_wave_row(True, wave_name.replace("Wave", '').upper(), participant)
+                                self._generate_wave_row(True, event_id, wave_name.replace("Wave", '').upper(), participant)
 
             # Generate Wave Participant tables
             for event_id, event_info in self.parent.data.items():
@@ -138,5 +138,6 @@ class GenRight:
                         with self.tag('tbody', klass='participant-tbody',
                                       style='width:100%;'):
                             for participant in wave_data['participants']:
-                                self._generate_wave_row(None, None, participant)
+                                self._generate_wave_row(None, event_id, wave_name.replace("Wave", '').upper(), participant)
+                                #self._generate_wave_row(None, event_id, None, participant)
 

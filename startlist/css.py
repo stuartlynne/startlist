@@ -66,6 +66,16 @@ thead {
     border-spacing: 0;
     width: 100% !;
 }
+.participant-tr-15 { 
+    align-items: end;
+    margin: 0;
+    padding: 0 !important; 
+    text-align: center; 
+    width: 100% !important; 
+    border-spacing: 0;
+    border: none !important;
+    line-height: 1.5;   
+}
 .participant-tr { 
     align-items: end;
     margin: 0;
@@ -75,12 +85,51 @@ thead {
     border-spacing: 0;
     border: none !important;
 }
-.participant-thtd { 
+/* participant */
+.thtd { 
     padding: 1px !important; 
     text-align: center; 
     border-spacing: 0;
     vertical-align: middle !important; 
     box-sizing: border-box;
+}
+.thtd-left { 
+    padding: 1px !important; 
+    text-align: left; 
+    border-spacing: 0;
+    vertical-align: middle !important; 
+    box-sizing: border-box;
+}
+.thtd-28 { 
+    padding: 1px !important; 
+    text-align: center; 
+    border-spacing: 0;
+    vertical-align: middle !important; 
+    box-sizing: border-box;
+    width: 28px;
+    margin-right: 10px;
+}
+/* notes */
+.participant-note { 
+    display: none;
+    align-items: end;
+    margin: 0;
+    padding: 0 !important; 
+    text-align: center; 
+    width: 100% !important; 
+    border-spacing: 0;
+    border: none !important;
+}
+.note-input {
+    width: 98%; 
+    height: 100%; 
+    padding: 1px; 
+    border: 1px solid #ccc; 
+    border-radius: 4px;
+}
+.div-note {
+    position: relative;
+    width: 100%;
 }
 
 @media screen and (orientation: landscape) {

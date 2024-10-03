@@ -62,7 +62,20 @@ function xtoggleBib(bibId) {
 function toggleNoteRow(bib, noteId) {
     console.log('toggleNoteRow: bib: %s noteId: %s', bib, noteId);
     var noteRow = document.getElementById(noteId);
-    if (noteRow.style.display === 'none') {
+    console.log('toggleNoteRow: noteRow.placeholder: %s', noteRow.placeholder);
+    //console.log('toggleNoteRow: noteRow.style: %s', noteRow.style);
+    //console.log('toggleNoteRow: noteRow.style.display: %s', noteRow.style.display);
+
+   // Find the input field inside the row
+    var inputField = noteRow.querySelector('input.note-input');
+
+    // Set the placeholder dynamically if it hasn't been set yet
+    if (inputField && !inputField.placeholder) {
+        inputField.placeholder = `Competition note for ${bib}`;
+    }
+
+
+    if (noteRow.style.display === 'none' || noteRow.style.display === '') {
         noteRow.style.display = 'table-row';
     } else {
         noteRow.style.display = 'none';
@@ -70,16 +83,16 @@ function toggleNoteRow(bib, noteId) {
 }
 
 // Handle keypress event
-function handleNoteKeyPress(event, bib, inputId) {
+function HNKP(event, bib, inputId) {
     console.log('handleNoteKeyPress: bib: %s %s', inputId, event.key);
     if (event.key === 'Enter') {
         console.log('handleNoteKeyPress: call saveNoteData');
-        saveNoteData(bib, inputId);  // Save the note when Enter is pressed
+        SND(bib, inputId);  // Save the note when Enter is pressed
     }
 }
 
 // Handle keydown event (you can extend this if needed)
-function handleNoteKeyDown(event, bib, inputId) {
+function HNKD(event, bib, inputId) {
     // Optional: Additional handling on key down
     //var noteInput = document.querySelector(inputId);
     var noteInput = document.getElementById(inputId);
@@ -90,7 +103,7 @@ function handleNoteKeyDown(event, bib, inputId) {
 }
 
 // Save the note data when the input field loses focus or Enter is pressed
-function saveNoteData(bib, inputId) {
+function SND(bib, inputId) {
     //var noteInput = document.querySelector(inputId);
     var noteInput = document.getElementById(inputId);
     console.log('saveNoteData: bib: %s inputId: %s: noteInput: %s', bib, inputId, noteInput);

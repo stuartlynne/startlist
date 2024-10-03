@@ -32,9 +32,10 @@ function highlightBibNumber(bibNumber, highlightColor, setFlag, debug = false) {
     return foundFlag;
 }
 
+/* toggleBib */
 let bigHighlighted = [];
-function toggleBib(bib, noteId) {
-    console.log('toggleBib:', bib);
+function TB(bib, noteId) {
+    console.log('toggleBib: bib: %s noteId: %s', bib, noteId);
     if (bib) {
         if (bigHighlighted.includes(bib)) {
             bigHighlighted = bigHighlighted.filter(item => item !== bib);
@@ -45,7 +46,9 @@ function toggleBib(bib, noteId) {
         }
         setCookie("bibHighlighted", JSON.stringify(bigHighlighted), 7);  // Set new cookie
     }
-    toggleNoteRow(bib, noteId);
+    if (noteId) {
+        toggleNoteRow(bib, noteId);
+    }
 }
 
 

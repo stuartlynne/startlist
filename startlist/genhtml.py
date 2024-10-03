@@ -17,34 +17,35 @@ from .css import css
 class GenHTML:
 
     def clean_id(self, id):
-        return id.replace('-','_').replace(' ', '_').replace('.','')
+        return id.replace('-','_').replace(' ', '_').replace('.','').replace('event_','').lower()
 
     #def event_selection_td_id(self, event_id):
     #    return self.clean_id(f"select_{event_id}_td")
 
-    def wave_selection_tr_id(self, event_id):
-        return self.clean_id(f"select_{event_id}")
+
+    def event_info_cell_id(self, event_id):
+        return self.clean_id(f"EWS_{event_id}")
+
+    def wave_selection_tr_id(self, event_id, wave_name, ):
+        return self.clean_id(f"WST_{event_id}_{wave_name}")
 
     def wave_table_id(self, event_id, wave_name):
-        return self.clean_id(f"{event_id}_{wave_name}".lower())
+        return self.clean_id(f"{event_id}_{wave_name}")
 
     def wave_table_all_id(self, event_id):
         return self.clean_id(f"{event_id}_wave_all")
-
-    def event_info_cell_id(self, event_id):
-        return self.clean_id(f"select_{event_id}_cell")
 
     def event_info_id(self, event_id):
         return self.clean_id(f"{event_id}-info")
 
     def wave_table_row_id(self, event_id, wave_name, bib):
-        return self.clean_id(f"wave_table_row_{event_id}_{wave_name}_{bib}")
+        return self.clean_id(f"wtr_{event_id}_{wave_name}_{bib}")
 
     def wave_table_note_id(self, event_id, wave_name, bib):
-        return self.clean_id(f"wave_table_note_{event_id}_{wave_name}_{bib}")
+        return self.clean_id(f"wtn_{event_id}{wave_name}_{bib}")
 
     def wave_table_input_id(self, event_id, wave_name, bib):
-        return self.clean_id(f"wave_table_input_{event_id}_{wave_name}_{bib}")
+        return self.clean_id(f"wti_{event_id}{wave_name}_{bib}")
          
 
     def __init__(self, competition_name, competition_date):

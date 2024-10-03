@@ -34,7 +34,8 @@ function setSelection(selectionStr) {
 var lastEventSelectionStr = null;
 var lastWaveSelectionStr = null;
 
-function toggleEventTable(toggleList ) {
+/* toggleEventTable */
+function TET(toggleList ) {
     console.log('---------------------------------------------');
     console.log('---------------------------------------------');
     console.log('toggleEventTable:', toggleList);
@@ -50,11 +51,11 @@ function toggleEventTable(toggleList ) {
     setCookie("eventSelection", lastEventSelectionStr, 7);  // Set new cookie
 
     waveSelection = [null, null, toggleList[2]];
-    toggleWaveTable(waveSelection);
+    TWT(waveSelection);
     lastWaveSelectionStr = JSON.stringify(waveSelection);
 }
 
-function toggleWaveTable(toggleList) {
+function TWT(toggleList) {
     console.log('---------------------------------------------');
     console.log('---------------------------------------------');
     console.log('toggleWaveTable:', toggleList);

@@ -17,43 +17,41 @@ class GenLeft:
         #if header1:
         #    self.text(header1)
         with self.tag('tr', klass="participant-tr", style="line-height: 1.5; width:100%",):
-            #with self.tag('th', klass='participant-thtd', style="", ):
+            #with self.tag('th', klass='thtd', style="", ):
             #    #self.text('Wave')
             #    self.text(race)
 
             #for header in ['Laps', 'Minutes', 'Distance']:  
-            #    with self.tag('th', klass='participant-thtd', style="text-align: center; vertical-align: middle", ):
+            #    with self.tag('th', klass='thtd', style="text-align: center; vertical-align: middle", ):
             #        self.text(header)
-            with self.tag('th', klass='participant-thtd', style="text-align: left; vertical-align: middle", colspan=3, ):
+            with self.tag('th', klass='thtd', colspan=3, ):
                 self.text(start_time)
-            with self.tag('th', klass='participant-thtd', style="text-align: left; vertical-align: middle", ):
+            with self.tag('th', klass='thtd', ):
                 self.text('Details')
 
-            with self.tag('th', klass='participant-thtd', style="text-align: left; vertical-align: middle; padding-left: 10px; ", ):
+            with self.tag('th', klass='thtd', style="padding-left: 10px; ", ):
                 self.text('Categories')
 
-            with self.tag('th', klass='participant-thtd', style="text-align: left; vertical-align: middle;", ):
+            with self.tag('th', klass='thtd',  ):
                 self.text('Starters')
 
     def _generate_event_info_row(self, count, event_id, wave_name, start_offset, laps, minutes, distance, categories, participant_counts):
 
         #event_info_cell_id, event_info_id, wave_table_all_id = self.parent.info_table_ids(event_id)
-        wave_selection_tr_id = self.parent.wave_selection_tr_id(event_id, )
+        wave_selection_tr_id = self.parent.wave_selection_tr_id(event_id, wave_name, )
         wave_table_id = self.parent.wave_table_id(event_id, wave_name)
         with self.tag('tr', klass='participant-tr fs-s', id=wave_selection_tr_id,
-                      style='; height=5px; width:100% ', 
-                      onclick=f"toggleWaveTable(['{wave_selection_tr_id}', null, '{wave_table_id}'])", 
-                      ):
+                      onclick=f"TWT(['{wave_selection_tr_id}', null, '{wave_table_id}'])", ):
 
-            with self.tag('td', klass='participant-thtd fs-xl', style='text-align: center; width:28px;", '):
+            with self.tag('td', klass='thtd-28 fs-xl', ):
                 self.doc.asis('<b>')
                 self.text(wave_name.replace('Wave ','').upper())
 
-            with self.tag('td', klass='participant-thtd fs-xl', style='text-align: center; width:28px;", '):
+            with self.tag('td', klass='thtd-28 fs-xl', ):
                 start_mmss = "%d:%02d" % (start_offset // 60,start_offset % 60)
                 self.text(start_mmss)
 
-            with self.tag('td', klass='participant-thtd', style="text-align:left; ;  ", ):
+            with self.tag('td', klass='thtd', style="text-align:left; ;  ", ):
                 self.text('')
 
             if laps:
@@ -69,15 +67,15 @@ class GenLeft:
             details = ', '.join(details)
 
             #for detail in [laps, minutes, distance]:
-            #    with self.tag('td', klass='participant-thtd', style="text-align: left;padding-left: 20px; ", ):
+            #    with self.tag('td', klass='thtd', style="text-align: left;padding-left: 20px; ", ):
             #        self.text(str(detail) if detail else '')
-            with self.tag('td', klass='participant-thtd', style="text-align: left;padding-left: 50px; padding-right: 30px; ", ):
+            with self.tag('td', klass='thtd-left', ):
                 self.text(details)
 
-            with self.tag('td', klass='participant-thtd', style="text-align:left; ;  ", ):
+            with self.tag('td', klass='thtd', style="text-align:left; ;  ", ):
                 self.text(', '.join(categories) if categories else '')
             
-            with self.tag('td', klass='participant-thtd', style="text-align:left;", ):
+            with self.tag('td', klass='thtd', style="text-align:left;", ):
                 self.text(participant_counts)
 
     def generate_left(self):
@@ -119,9 +117,9 @@ class GenLeft:
 
 
                 with self.tag('tr', ):
-                    with self.tag('td', klass='participant-thtd fs-6m', style='text-align: left; padding: 2px; '):
+                    with self.tag('td', klass='thtd fs-6m', style='text-align: left; padding: 2px; '):
                         self.text(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
-                    with self.tag('td', klass='participant-thtd fs-6m', style='text-align: right; padding: 2px; '):
+                    with self.tag('td', klass='thtd fs-6m', style='text-align: right; padding: 2px; '):
                         with self.tag('span', klass='fs-m', style='cursor: pointer; ', 
                                       onclick=f"downloadNotes('{self.parent.competition_name}', '2024-09-23')"):
                             self.text('Share')
@@ -158,8 +156,7 @@ class GenLeft:
                             #with self.tag('td', klass="select-thtd", style="text-align:left",):
                             #    self.text(event)
                             with self.tag('td', klass="select-thtd", id=event_info_cell_id,
-                                          onclick=f"toggleEventTable(['{event_info_cell_id}', '{event_info_id}', '{wave_table_all_id}'])", 
-                                          style="cursor: pointer;text-align:center"):
+                                          onclick=f"TET(['{event_info_cell_id}', '{event_info_id}', '{wave_table_all_id}'])", ):
                                 self.text(f"{event_name} {event_info['start_time'].strftime('%H:%M')}")
             # Generate the Event Information table 
             for event_id, event_info in self.parent.data.items():
