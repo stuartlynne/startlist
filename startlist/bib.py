@@ -5,47 +5,29 @@ function highlightBibNumber(bibNumber, highlightColor, setFlag, debug = false) {
     console.log('---------------------------------------------');
     console.log('---------------------------------------------');
     console.log('highlightBibNumber:', bibNumber, highlightColor, setFlag);
-    var found = false;
-    var allTables = document.querySelectorAll('table[id*="_wave_"]');
-    foundFlag = false;
-    allTables.forEach(function(table) {
-        console.log('searchBibNumber: table:', table.id);
-        var rows = table.getElementsByTagName('tr');
-        for (var i = 1; i < rows.length; i++) {  // Skip header row
-            index = (table.id.endsWith('_wave_all')) ? 1 : 0; 
-            var bibCell = rows[i].getElementsByTagName('td')[index];  // Assuming Bib is in the first column
-            if (!bibCell || !bibCell.innerText || bibCell.innerText === "") { continue; }
-            if (debug) {
-                console.log('searchBibNumber: innerText:', bibCell.innerText);
-            }
-            if (bibCell.innerText === bibNumber) {
-                //console.log('searchBibNumber: %s found table: %s row: %d id: %s XXX', bibNumber, table.id, i, rows[i].id);
-                foundFlag = true;
-                rows[i].querySelectorAll('td').forEach(function(td) {
-                    if (!setFlag) { setFlag = td.style.backgroundColor === 'white'; }
-                    td.style.backgroundColor = setFlag ? highlightColor : 'white';
-                });
-            }
-        }
+
+    if (!setFlag) {
+        highlightColor = bibNumber in notesDictionary ? 'beige' : 'white'
+    }
+
+    selectors = `tr[id^="wtr_"][id$="_${bibNumber}"]`;
+    console.log('highlightBibNumber: selectors: %s', selectors);
+    trs = document.querySelectorAll(selectors);
+    console.dir(trs);
+    found = false;
+    trs.forEach(tr => {
+        found = true;
+        console.log('highlightBibNumber: set tr: %s', tr.id);    
+        tr.style.backgroundColor = highlightColor;
     });
-    console.log('searchBibNumber: foundFlag:', foundFlag);
-    return foundFlag;
+        
+    return found;
+
 }
 
 /* toggleBib */
-let bigHighlighted = [];
 function TB(bib, noteId) {
     console.log('toggleBib: bib: %s noteId: %s', bib, noteId);
-    if (bib) {
-        if (bigHighlighted.includes(bib)) {
-            bigHighlighted = bigHighlighted.filter(item => item !== bib);
-            highlightBibNumber(bib, 'beige', false, false);
-        } else {
-            bigHighlighted.push(bib);
-            highlightBibNumber(bib, 'beige', true, false);
-        }
-        setCookie("bibHighlighted", JSON.stringify(bigHighlighted), 7);  // Set new cookie
-    }
     if (noteId) {
         toggleNoteRow(bib, noteId);
     }
@@ -83,15 +65,19 @@ function clearInput() {
 var lastBibNumber = null;
 function searchBibNumber(reset) {
     var bibNumber = document.getElementById("bibInput").value;
-    //console.log('Searching for bib number:', bibNumber);
+    console.log('searchBibNumber: bib: %s lastBib: %s', bibNumber, lastBibNumber);
 
     if (!bibNumber || bibNumber === "") {
         if (!lastBibNumber) { return; }
-        highlightBibNumber(lastBibNumber, 'yellow', false);
+        highlightBibNumber(lastBibNumber, null, false);
     }
     if (bibNumber === lastBibNumber) { return; }
 
-    highlightBibNumber(lastBibNumber, 'yellow', false);
+    if (lastBibNumber) {
+        highlightBibNumber(lastBibNumber, 'yellow', false);
+        lastBibNumber = null;
+    }
+
     if (highlightBibNumber(bibNumber, 'yellow', true) === true) {
         lastBibNumber = bibNumber;
         setCookie("lastBib", bibNumber, 7);  // Set new cookie

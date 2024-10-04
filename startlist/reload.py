@@ -8,6 +8,7 @@ function reloadLast() {
     console.log('reloadLast: currentPage:', currentPage);
     let lastModifiedDate = document.lastModified;
     console.log("Last Modified:" + lastModifiedDate);
+
     if (!lastPage || (lastPage !== currentPage)) {
         setCookie("lastPage", currentPage, 7);  // Set new cookie
         setCookie("eventSelection", '', 7);  // Set new cookie
@@ -19,7 +20,8 @@ function reloadLast() {
     let eventSelectionStr = getCookie("eventSelection");
     let waveSelectionStr = getCookie("waveSelection");
     let lastBib = getCookie("lastBib");
-    let bibHighlighted = getCookie("bibHighlighted");
+    //let bibHighlightedStr = getCookie("bibHighlighted");
+    let notesDictionaryStr = getCookie("notesDictionary");
 
     if (eventSelectionStr === "") { return; }
 
@@ -32,12 +34,10 @@ function reloadLast() {
         lastBibNumber = lastBib;
         document.getElementById("bibInput").value = lastBib;
     }
-    if (bibHighlighted !== "") {
-        bigHighlighted = JSON.parse(bibHighlighted);
-        console.log('reloadLast: bigHighlighted:', bigHighlighted);
-        bigHighlighted.forEach(function(bib) {
-            highlightBibNumber(bib, 'beige', true, true);
-        });
+    if (notesDictionaryStr !== "") {
+        notesDictionary = JSON.parse(notesDictionaryStr);
+        restoreNotes();
+        //console.log('reloadLast: notes:', notes);
     }
     if (waveSelectionStr === "") { return; }
     var waveSelection = JSON.parse(waveSelectionStr);

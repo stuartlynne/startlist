@@ -110,6 +110,10 @@ thead {
     margin-right: 10px;
 }
 /* notes */
+//.participant-note:nth-child(4n+1) { background-color: red; }
+//.participant-note:nth-child(even) { background-color: lightgreen; }
+
+
 .participant-note { 
     display: none;
     align-items: end;
@@ -119,7 +123,9 @@ thead {
     width: 100% !important; 
     border-spacing: 0;
     border: none !important;
+    background-color: white;
 }
+
 .note-input {
     width: 98%; 
     height: 100%; 
@@ -130,6 +136,9 @@ thead {
 .div-note {
     position: relative;
     width: 100%;
+}
+.note-tr {
+    background-color: white;
 }
 
 @media screen and (orientation: landscape) {

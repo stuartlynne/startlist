@@ -48,9 +48,11 @@ class GenRight:
         bib = str(participant['bib']) if participant['bib'] else ''
         all == bool(wave_name)
 
-        wave_table_row_id = self.parent.wave_table_row_id(event_id, wave_name, bib)
+        wave_table_row_id = self.parent.wave_table_row_id(event_id, wave_name if event else '', bib)
         wave_table_note_id = self.parent.wave_table_note_id(event_id, wave_name if event else '', bib)
-        wave_table_input_id = self.parent.wave_table_input_id(event_id, wave_name, bib)
+
+        wave_table_input_n_id = self.parent.wave_table_input_n_id(event_id, wave_name, bib)
+        wave_table_input_all_id = self.parent.wave_table_input_all_id(event_id, bib)
 
         with self.tag('tr', klass='participant-tr fs-s', id=wave_table_row_id,
                 onclick=f"TB('{bib}', '{wave_table_note_id}')", ):
@@ -79,13 +81,11 @@ class GenRight:
             #with self.tag('td', klass='thtd fs-xl', colspan=6, style='text-center: left; padding: 1px;', ):
             with self.tag('td', klass='thtd fs-xl', colspan=6, ):
                 with self.tag('div', klass='div-note', ):
-                    with self.tag('input', klass='note-input', id=wave_table_input_id, 
-                                  type='text', 
-                                  #placeholder=f'Competition note for {bib}',
-                                  onkeypress=f"HNKP(event, '{bib}', '{wave_table_input_id}')",
-                                  onkeydown=f"HNKD(event, '{bib}', '{wave_table_input_id}')",
-                                  onblur=f"SND('{bib}', '{wave_table_input_id}')", ):
-                        pass 
+                    inputFieldId = wave_table_input_all_id if event else wave_table_input_n_id
+                    otherFieldId = wave_table_input_n_id if event else wave_table_input_all_id
+
+                    with self.tag('input', type='text', klass='note-input', id=inputFieldId,
+                                  onkeydown=f"HNKD(event, '{bib}', '{otherFieldId}', )",): pass 
 
     def generate_right(self):
         # Right container for event and wave tables
@@ -102,7 +102,7 @@ class GenRight:
                          for wave_name, wave_data in event_info['waves'].items()]
                 waves = ', '.join([f"{wave[0]}:{wave[1]}" for wave in waves])
 
-                with self.tag('table', klass="table table-striped tablesorter participant-table", id=wave_table_all_id, 
+                with self.tag('table', klass="table tablesorter participant-table", id=wave_table_all_id, 
                               style="display:none; padding: 1px;",):
                     # Event Wave Header
                     with self.tag('thead', klass='participant-thead', 
@@ -127,7 +127,7 @@ class GenRight:
                     categories = set([participant['category_code'] for participant in wave_data['participants']])
 
                     # Wave Table Participants
-                    with self.tag('table', klass="table table-striped tablesorter participant-table", id=wave_table_id, 
+                    with self.tag('table', klass="table tablesorter participant-table", id=wave_table_id, 
                                   style="display:none; padding: 1px;"):
                         with self.tag('thead', klass='participant-thead',
                                       style='width:100%;'):

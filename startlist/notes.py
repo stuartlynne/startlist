@@ -5,7 +5,7 @@ var notesDictionary = {};  // Dictionary to store notes keyed by bib number
 function openNoteBib(bibNumber, setFlag, debug = false) {
     console.log('---------------------------------------------');
     console.log('---------------------------------------------');
-    console.log('highlightBibNumber:', bibNumber, highlightColor, setFlag);
+    //console.log('highlightBibNumber:', bibNumber, highlightColor, setFlag);
     var found = false;
     var allTables = document.querySelectorAll('table[id*="_wave_"]');
     foundFlag = false;
@@ -19,6 +19,7 @@ function openNoteBib(bibNumber, setFlag, debug = false) {
             if (debug) {
                 console.log('searchBibNumber: innerText:', bibCell.innerText);
             }
+            /*
             if (bibCell.innerText === bibNumber) {
                 //console.log('searchBibNumber: %s found table: %s row: %d id: %s XXX', bibNumber, table.id, i, rows[i].id);
                 foundFlag = true;
@@ -27,36 +28,12 @@ function openNoteBib(bibNumber, setFlag, debug = false) {
                     td.style.backgroundColor = setFlag ? highlightColor : 'white';
                 });
             }
+            */
         }
     });
     console.log('searchBibNumber: foundFlag:', foundFlag);
     return foundFlag;
 }
-
-let xbigHighlighted = [];
-function xtoggleBib(bibId) {
-    console.log('toggleBib:', bib);
-
-    var allTables = document.querySelectorAll('table[id*="_wave_"]');
-    foundFlag = false;
-    allTables.forEach(function(table) {
-        console.log('searchNoteNumber: table:', table.id);
-
-    })
-
-    if (bib) {
-        if (bigHighlighted.includes(bib)) {
-            bigHighlighted = bigHighlighted.filter(item => item !== bib);
-            highlightBibNumber(bib, 'beige', false, true);
-        } else {
-            bigHighlighted.push(bib);
-            highlightBibNumber(bib, 'beige', true, true);
-        }
-        setCookie("bibHighlighted", JSON.stringify(bigHighlighted), 7);  // Set new cookie
-    }
-
-}
-
 
 // Toggle visibility of the note row
 function toggleNoteRow(bib, noteId) {
@@ -82,51 +59,29 @@ function toggleNoteRow(bib, noteId) {
     }
 }
 
-// Handle keypress event
-function HNKP(event, bib, inputId) {
-    console.log('handleNoteKeyPress: bib: %s %s', inputId, event.key);
-    if (event.key === 'Enter') {
-        console.log('handleNoteKeyPress: call saveNoteData');
-        SND(bib, inputId);  // Save the note when Enter is pressed
-    }
-}
-
-// Handle keydown event (you can extend this if needed)
+/* Handle keydown event 
+ * The event handler keeps the note data in sync with the input field,
+ * The inputId is the other input field for this bib number.
+ */
 function HNKD(event, bib, inputId) {
-    // Optional: Additional handling on key down
-    //var noteInput = document.querySelector(inputId);
+
+    console.log('note for bib: %s: event value: %s', bib, event.target.value.trim()); 
+
+    // Update notesDictionary with the new note value
+    noteValue = event.target.value.trim();
+    notesDictionary[bib] = noteValue;
+    setCookie('notesDictionary', JSON.stringify(notesDictionary), 7);  // Save the notes to a cookie
+
+    // Update the other input field with the same note value
     var noteInput = document.getElementById(inputId);
-    console.log('handleNoteKeyDown: bib: %s inputId: %s: noteInput: %s', bib, inputId, noteInput);
-    if (noteInput) {
-        console.log('note for bib: %s: value: %s', bib, noteInput.value); 
+    noteInput.value = noteValue
+
+    // Highlight the bib number
+    if (bib != lastBibNumber) {
+        highlightBibNumber(bib, 'beige', noteInput.value.trim().length, true);  // Highlight the bib number
     }
-}
 
-// Save the note data when the input field loses focus or Enter is pressed
-function SND(bib, inputId) {
-    //var noteInput = document.querySelector(inputId);
-    var noteInput = document.getElementById(inputId);
-    console.log('saveNoteData: bib: %s inputId: %s: noteInput: %s', bib, inputId, noteInput);
-    if (noteInput) {
-        notesDictionary[bib] = noteInput.value;
-        console.log('Saved note for bib: %s: value: %s', bib, noteInput.value); 
-    }
 }
-
-function XXXdownloadNotes_file() {
-    console.log('downloadNotes: notesDictionary:', notesDictionary);
-    const notesData = JSON.stringify(notesDictionary, null, 2);  // Save as JSON or format as text
-    const blob = new Blob([notesData], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'notes.txt';  // Set file name
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
-
 
 function downloadNotes(event, date) {
     notesData = "Competition Notes: " + event + "\\n";
@@ -142,11 +97,8 @@ function downloadNotes(event, date) {
 
     let filename = date + '_' + event + '_notes';
     const blob = new Blob([notesData], { type: 'text/plain' });
-    //const file = new File([blob], 'race_notes.txt', { type: 'text/plain' });
-    //const file = new File([blob], date + '_' + event + '_notes.txt', { type: 'text/plain' });
     const file = new File([blob], filename+'.txt', { type: 'text/plain' });
 
-    //alert("Checking for sharing support.");
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
         alert("Sharing supported.");
         //alert("Shared file created.");
@@ -173,6 +125,25 @@ function downloadNotes(event, date) {
         URL.revokeObjectURL(url);
     }
 }
+
+function restoreNotes() {
+
+    for (const bib in notesDictionary) {
+        if (notesDictionary[bib] === "") { continue; }
+        const selectors = `input[id^="wti_"][id$="_${bib}"]`;
+        console.log('restoreNotes: selectors:', selectors);
+        console.dir(selectors);
+        const noteInputs = document.querySelectorAll(selectors);
+        if (bib != lastBibNumber) {
+            highlightBibNumber(bib, 'beige', true);  // Highlight the bib number
+        }
+        noteInputs.forEach(input => {
+            input.value = notesDictionary[bib]; // Set the value from the notesDictionary
+        });
+    }
+
+}
+
 
 function getCurrentDateTime() {
     const now = new Date();

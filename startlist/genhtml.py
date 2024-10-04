@@ -44,8 +44,11 @@ class GenHTML:
     def wave_table_note_id(self, event_id, wave_name, bib):
         return self.clean_id(f"wtn_{event_id}{wave_name}_{bib}")
 
-    def wave_table_input_id(self, event_id, wave_name, bib):
+    def wave_table_input_n_id(self, event_id, wave_name, bib):
         return self.clean_id(f"wti_{event_id}{wave_name}_{bib}")
+         
+    def wave_table_input_all_id(self, event_id, bib):
+        return self.clean_id(f"wti_{event_id}_{bib}")
          
 
     def __init__(self, competition_name, competition_date):
