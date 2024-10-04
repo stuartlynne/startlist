@@ -39,7 +39,7 @@ class GenHTML:
         return self.clean_id(f"{event_id}-info")
 
     def wave_table_row_id(self, event_id, wave_name, bib):
-        return self.clean_id(f"wtr_{event_id}_{wave_name}_{bib}")
+        return self.clean_id(f"wtr_{event_id}{wave_name}_{bib}")
 
     def wave_table_note_id(self, event_id, wave_name, bib):
         return self.clean_id(f"wtn_{event_id}{wave_name}_{bib}")
@@ -100,19 +100,11 @@ class GenHTML:
                 with self.tag('style'):
                     self.doc.asis('.selection-table { padding: 2px; }')
 
-
-                    if False:
-                        self.doc.asis('.fs-s { font-size: .6em; }')
-                        self.doc.asis('.fs-m { font-size: .8em; }')
-                        self.doc.asis('.fs-l { font-size: 1.2em; }')
-                        self.doc.asis('.fs-xl { font-size: 1.4em; }')
-                        self.doc.asis('.fs-20px { font-size: 20px; }')
-                    else:
-                        self.doc.asis('.fs-s { font-size: .7em; }')
-                        self.doc.asis('.fs-m { font-size: .9em; }')
-                        self.doc.asis('.fs-l { font-size: 1.3em; }')
-                        self.doc.asis('.fs-xl { font-size: 1.4em; }')
-                        self.doc.asis('.fs-20px { font-size: 20px; }')
+                    self.doc.asis('.fs-s { font-size: .7em; }')
+                    self.doc.asis('.fs-m { font-size: .9em; }')
+                    self.doc.asis('.fs-l { font-size: 1.3em; }')
+                    self.doc.asis('.fs-xl { font-size: 1.4em; }')
+                    self.doc.asis('.fs-20px { font-size: 20px; }')
 
                     self.doc.asis('.left {width: 100%; background-color: white}')
                     self.doc.asis('.right {width: 100%; background-color: white}')

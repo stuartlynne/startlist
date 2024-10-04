@@ -36,11 +36,18 @@ html, body {
 thead {
   display: table-header-group;
 }
+/*
+.fs-s { font-size: .7em; }
+.fs-m { font-size: .9em; }
+.fs-l { font-size: 1.3em; }
+.fs-xl { font-size: 1.4em; }
+.fs-20px { font-size: 20px; 
+*/
 
 .select-tr { padding: 1px !important; text-align: center; width: 100%; }
 .select-thtd { padding: 1px !important; text-align: center; }
 
-.participant-table {
+.part-table {
     border-collapse: collapse;
     border: none !important;
     margin: 0 !important;
@@ -50,7 +57,7 @@ thead {
     box-sizing: border-box;
 
 }
-.participant-thead {
+.part-thead {
     align-items: start;
     position: sticky;  /* Make the header sticky */
     background-color: white;
@@ -58,7 +65,7 @@ thead {
     border-spacing: 0;
     width: 100% !important;
 }
-.participant-tbody {
+.part-tbody {
     align-items: start;
     /*position: sticky;*/  /* Make the header sticky */
     background-color: white;
@@ -66,7 +73,18 @@ thead {
     border-spacing: 0;
     width: 100% !;
 }
-.participant-tr-15 { 
+.part-tr-s { 
+    align-items: end;
+    margin: 0;
+    padding: 0 !important; 
+    text-align: center; 
+    width: 100% !important; 
+    border-spacing: 0;
+    border: none !important;
+    line-height: 1.5;   
+    font-size: .7em;
+}
+.part-tr-15 { 
     align-items: end;
     margin: 0;
     padding: 0 !important; 
@@ -76,7 +94,7 @@ thead {
     border: none !important;
     line-height: 1.5;   
 }
-.participant-tr { 
+.part-tr { 
     align-items: end;
     margin: 0;
     padding: 0 !important; 
@@ -93,6 +111,14 @@ thead {
     vertical-align: middle !important; 
     box-sizing: border-box;
 }
+.thtd-xl { 
+    padding: 1px !important; 
+    text-align: center; 
+    border-spacing: 0;
+    vertical-align: middle !important; 
+    box-sizing: border-box;
+    font-size: 1.4em;
+}
 .thtd-left { 
     padding: 1px !important; 
     text-align: left; 
@@ -108,13 +134,14 @@ thead {
     box-sizing: border-box;
     width: 28px;
     margin-right: 10px;
+    font-size: 1.4em;
 }
 /* notes */
 //.participant-note:nth-child(4n+1) { background-color: red; }
 //.participant-note:nth-child(even) { background-color: lightgreen; }
 
 
-.participant-note { 
+.part-note { 
     display: none;
     align-items: end;
     margin: 0;
@@ -124,6 +151,7 @@ thead {
     border-spacing: 0;
     border: none !important;
     background-color: white;
+    font-size: .7em;
 }
 
 .note-input {

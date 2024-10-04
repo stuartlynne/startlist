@@ -16,7 +16,7 @@ class GenLeft:
     def _generate_event_info_header(self, race=None, start_time=None):
         #if header1:
         #    self.text(header1)
-        with self.tag('tr', klass="participant-tr", style="line-height: 1.5; width:100%",):
+        with self.tag('tr', klass="part-tr", style="line-height: 1.5; width:100%",):
             #with self.tag('th', klass='thtd', style="", ):
             #    #self.text('Wave')
             #    self.text(race)
@@ -40,14 +40,14 @@ class GenLeft:
         #event_info_cell_id, event_info_id, wave_table_all_id = self.parent.info_table_ids(event_id)
         wave_selection_tr_id = self.parent.wave_selection_tr_id(event_id, wave_name, )
         wave_table_id = self.parent.wave_table_id(event_id, wave_name)
-        with self.tag('tr', klass='participant-tr fs-s', id=wave_selection_tr_id,
+        with self.tag('tr', klass='part-tr fs-s', id=wave_selection_tr_id,
                       onclick=f"TWT(['{wave_selection_tr_id}', null, '{wave_table_id}'])", ):
 
-            with self.tag('td', klass='thtd-28 fs-xl', ):
+            with self.tag('td', klass='thtd-28', ):
                 self.doc.asis('<b>')
                 self.text(wave_name.replace('Wave ','').upper())
 
-            with self.tag('td', klass='thtd-28 fs-xl', ):
+            with self.tag('td', klass='thtd-28', ):
                 start_mmss = "%d:%02d" % (start_offset // 60,start_offset % 60)
                 self.text(start_mmss)
 
@@ -133,7 +133,7 @@ class GenLeft:
             # Generate the event selection table (static)
             with self.tag('table', klass="table table-striped selection-table fs-s",):
                 if False:
-                    with self.tag('thead', klass='participant-thead', ):
+                    with self.tag('thead', klass='part-thead', ):
                         with self.tag('tr', klass="select-tr", style="width:100%;", ):
                             with self.tag('th', klass="select-thtd", style="text-align:center",):
                                 self.text('Start Time')
@@ -141,7 +141,7 @@ class GenLeft:
                                 with self.tag('th', klass="select-thtd", style="text-align:left",):
                                     self.text(f'Wave {chr(65 + i)}')  # Add "Wave A", "Wave B", etc. to header
 
-                with self.tag('tbody', klass='participant-tbody', ):
+                with self.tag('tbody', klass='part-tbody', ):
                     with self.tag('tr', klass="select-tr", style="width:100%;", ):
                         for event_id, event_info in self.parent.data.items():
                             #print(f"Generating event row for {event_id} info {event_info}", file=sys.stderr)
@@ -167,16 +167,16 @@ class GenLeft:
                 wave_table_all_id = self.parent.wave_table_all_id(event_id)
 
                 # Event table with all waves
-                with self.tag('table', klass="table table-striped tablesorter participant-table", style="display:none; padding: 1px; width:100%;",
+                with self.tag('table', klass="table table-striped tablesorter part-table", style="display:none; padding: 1px; width:100%;",
                               id=event_info_id, ):
                     event_name = event_id.replace("event-", "").replace("_", " ").title()
-                    with self.tag('thead', klass='participant-thead', 
+                    with self.tag('thead', klass='part-thead', 
                                   style='width:100%;'):
                         self._generate_event_info_header(event_name, event_info['start_time'].strftime('%H:%M'), )
 
-                    with self.tag('tbody', klass='participant-tbody', style='width:100%;' ):
+                    with self.tag('tbody', klass='part-tbody', style='width:100%;' ):
                         for i, (wave_name, wave_data) in enumerate(event_info['waves'].items()):
-                            participant_counts = ', '.join([str(v) for v in Counter([participant['category_code'] 
+                            participant_counts = ', '.join([str(v) for v in Counter([participant['category_code']
                                                                         for participant in wave_data['participants']]).values()])
 
                             print('wavedata', wave_data, file=sys.stderr)
