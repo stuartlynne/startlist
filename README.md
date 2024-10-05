@@ -30,22 +30,14 @@ Features:
 
 The following are samples of the output of the script.
 
-### Selection Table
-![top-portrait](./img/top-portrait.png)
-
 #### Portrait
 
-
-![event-portrait](./img/event-portrait.png) ![wave-portrait](./img/wave-portrait.png)
-| | | |
+![event-portrait](./img/vanier-portrait.png) 
 
 ### Landscape
 
-![event-landscape](./img/event-landscape.png)
-![wave-landscape](./img/wave-landscape.png)
+![vanier-landscape](./img/vanier-landscape.png)
 
-### Search
-|[wave-portrait](./img/search-landscape-portrait.png)
 
 
 
