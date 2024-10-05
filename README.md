@@ -1,13 +1,15 @@
 # startlist
 # Thu Sep 26 03:58:26 PM PDT 2024
 
-Generation of traditional paper start lists is time-consuming and difficult
-at events. 
+*startlist* is a Python script to generate an HTML interactive start list for 
+races created in *RaceDB*. 
+
+This script is self-contained, all processing is done client side making it
+possible to host the file on a *Static Website.*
+
+The rationale behind this is that generation of traditional paper start lists is 
+time-consuming and difficult at events. 
 Everyone has a cell phone capable of displaying a web page.
-
-This script generates an HTML start list for a competition in *RaceDB*.
-
-This is suitable for placing on a static website accessible at the competition.
 
 E.g. This is an S3 bucket configured as a static website:
 
@@ -16,6 +18,13 @@ E.g. This is an S3 bucket configured as a static website:
 
 This is intended primarily for officials and commissaires running the competition
 to replace paper start lists. Minimal notes can be entered and shared.
+
+Officials will have:
+- Competition name, when the list was generated
+- All event start times
+- All start waves for each start time, with start-offset
+- Details (laps, distance, minutes), categories and starters for each wave
+- List of participants with bib numbers for each start wave
 
 Cookies maintain the notes and selections when the page is refreshed.
 
@@ -74,6 +83,19 @@ python setup.py install
 ```
 startlist --date 20240923 --host racedb.wg
 ```
+
+## Workflow
+
+Especially for multi-event competitions, e.g. cyclocross, when downloading
+the *CrossMgr* file, also run this script to re-generate the start-list
+for the day. Then run whatever sync script you need to push it to
+your website. 
+
+We use our results website. Officials know that they can get the start-list
+there, and reload it just before each race starts to get any updates since
+the last race etc.
+
+
 
 
 
