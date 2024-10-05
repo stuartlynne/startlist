@@ -24,7 +24,13 @@ function highlightBibNumber(bibNumber, highlightColor, setFlag, debug = false) {
         if(!(bibNumber in namesDictionary)) {
             var tds = tr.querySelectorAll('td');
             var name = tds[3].innerText;
-            namesDictionary[bibNumber] = name;
+            var team = tds[4].innerText;
+            if (team.length) {
+                namesDictionary[bibNumber] = name + '; ' + team;
+            }
+            else {
+                namesDictionary[bibNumber] = name;
+            }
         }
     });
     return found;
