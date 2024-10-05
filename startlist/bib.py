@@ -1,55 +1,44 @@
 bib = """
 
+/* highlightBibNumber 
+ * Highlight the bib number in the table.
+ * This is used to highlight the bib number in the table when the bib number is entered 
+ * in the input field and when there is a note associated with the bib number.
+ *
+ * N.B. each bib number is present in two tables. The event all waves table and the wave 
+ * specific table.
+ */
+
 var lastBibNumber = null;
 function highlightBibNumber(bibNumber, highlightColor, setFlag, debug = false) {
-    console.log('---------------------------------------------');
-    console.log('---------------------------------------------');
-    console.log('highlightBibNumber:', bibNumber, highlightColor, setFlag);
-
     if (!setFlag) {
         highlightColor = bibNumber in notesDictionary ? 'beige' : 'white'
     }
 
     selectors = `tr[id^="wtr_"][id$="_${bibNumber}"]`;
-    console.log('highlightBibNumber: selectors: %s', selectors);
     trs = document.querySelectorAll(selectors);
-    console.dir(trs);
     found = false;
     trs.forEach(tr => {
         found = true;
-        console.log('highlightBibNumber: set tr: %s', tr.id);    
         tr.style.backgroundColor = highlightColor;
         if(!(bibNumber in namesDictionary)) {
-            //var tr = event.target.closest('tr');
-            //tr = tr.previousElementSibling;
-            //console.log('HNKD: tr:', tr.id);
             var tds = tr.querySelectorAll('td');
             var name = tds[3].innerText;
             namesDictionary[bibNumber] = name;
-            console.log('HNKD: added name:', name);
         }
     });
-
-    // get name into namesDictionary
-
-        
     return found;
-
 }
 
 /* toggleBib */
 function TB(bib, noteId) {
-    console.log('toggleBib: bib: %s noteId: %s', bib, noteId);
     if (noteId) {
         toggleNoteRow(bib, noteId);
     }
 }
 
-
-
 // Ensure only numbers are inputted
 function isNumber(evt) {
-    console.log('isNumber: %s', evt.which);
     var charCode = (evt.which) ? evt.which : evt.keyCode;
     if (charCode > 31 && (charCode < 48 || charCode > 57))
         return false;
@@ -58,10 +47,7 @@ function isNumber(evt) {
 // handle keydown event
 function handleKeyDown(evt) {
     var bibNumber = document.getElementById("bibInput").value;
-    console.log('heandleKeyDown: %s', bibNumber);
-    console.log('heandleKeyDown: %s', evt.which);
     if (evt.key === 'Enter') {
-        console.log('heandleKeyDown: Enter');
         searchBibNumber(false);
     }
 }
@@ -77,7 +63,6 @@ function clearInput() {
 var lastBibNumber = null;
 function searchBibNumber(reset) {
     var bibNumber = document.getElementById("bibInput").value;
-    console.log('searchBibNumber: bib: %s lastBib: %s', bibNumber, lastBibNumber);
 
     if (!bibNumber || bibNumber === "") {
         if (!lastBibNumber) { return; }

@@ -4,45 +4,23 @@ var namesDictionary = {};  // Dictionary to store names keyed by bib number
 
 //var lastBibNumber = null;
 function openNoteBib(bibNumber, setFlag, debug = false) {
-    console.log('---------------------------------------------');
-    console.log('---------------------------------------------');
-    //console.log('highlightBibNumber:', bibNumber, highlightColor, setFlag);
     var found = false;
     var allTables = document.querySelectorAll('table[id*="_wave_"]');
     foundFlag = false;
     allTables.forEach(function(table) {
-        console.log('searchBibNumber: table:', table.id);
         var rows = table.getElementsByTagName('tr');
         for (var i = 1; i < rows.length; i++) {  // Skip header row
             index = (table.id.endsWith('_wave_all')) ? 1 : 0; 
             var bibCell = rows[i].getElementsByTagName('td')[index];  // Assuming Bib is in the first column
             if (!bibCell || !bibCell.innerText || bibCell.innerText === "") { continue; }
-            if (debug) {
-                console.log('searchBibNumber: innerText:', bibCell.innerText);
-            }
-            /*
-            if (bibCell.innerText === bibNumber) {
-                //console.log('searchBibNumber: %s found table: %s row: %d id: %s XXX', bibNumber, table.id, i, rows[i].id);
-                foundFlag = true;
-                rows[i].querySelectorAll('td').forEach(function(td) {
-                    if (!setFlag) { setFlag = td.style.backgroundColor === 'white'; }
-                    td.style.backgroundColor = setFlag ? highlightColor : 'white';
-                });
-            }
-            */
         }
     });
-    console.log('searchBibNumber: foundFlag:', foundFlag);
     return foundFlag;
 }
 
 // Toggle visibility of the note row
 function toggleNoteRow(bib, noteId) {
-    console.log('toggleNoteRow: bib: %s noteId: %s', bib, noteId);
     var noteRow = document.getElementById(noteId);
-    console.log('toggleNoteRow: noteRow.placeholder: %s', noteRow.placeholder);
-    //console.log('toggleNoteRow: noteRow.style: %s', noteRow.style);
-    //console.log('toggleNoteRow: noteRow.style.display: %s', noteRow.style.display);
 
    // Find the input field inside the row
     var inputField = noteRow.querySelector('input.note-input');
@@ -65,9 +43,6 @@ function toggleNoteRow(bib, noteId) {
  */
 function HNKD(event, bib, inputId) {
 
-    console.log('note for bib: %s: event value: %s', bib, event.target.value.trim()); 
-
-    // Update notesDictionary with the new note value
     noteValue = event.target.value.trim();
     notesDictionary[bib] = noteValue;
     setCookie('notesDictionary', JSON.stringify(notesDictionary), 7);  // Save the notes to a cookie
@@ -126,8 +101,6 @@ function restoreNotes() {
     for (const bib in notesDictionary) {
         if (notesDictionary[bib] === "") { continue; }
         const selectors = `input[id^="wti_"][id$="_${bib}"]`;
-        console.log('restoreNotes: selectors:', selectors);
-        console.dir(selectors);
         const noteInputs = document.querySelectorAll(selectors);
         if (bib != lastBibNumber) {
             highlightBibNumber(bib, 'beige', true);  // Highlight the bib number
