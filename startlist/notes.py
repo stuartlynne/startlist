@@ -1,5 +1,6 @@
 notes = """
 var notesDictionary = {};  // Dictionary to store notes keyed by bib number
+var namesDictionary = {};  // Dictionary to store names keyed by bib number
 
 //var lastBibNumber = null;
 function openNoteBib(bibNumber, setFlag, debug = false) {
@@ -51,7 +52,6 @@ function toggleNoteRow(bib, noteId) {
         inputField.placeholder = `Competition note for ${bib}`;
     }
 
-
     if (noteRow.style.display === 'none' || noteRow.style.display === '') {
         noteRow.style.display = 'table-row';
     } else {
@@ -84,41 +84,36 @@ function HNKD(event, bib, inputId) {
 }
 
 function downloadNotes(event, date) {
-    notesData = "Competition Notes: " + event + "\\n";
-    notesData += "Date: " + date + "\\n\\n";
-    notesData += "Generated: " + getCurrentDateTime() + "\\n";
-    notesData += "----------------------------------\\n\\n";
+    notesData = "# Competition Notes: " + event + "\\n";
+    notesData += "# Date: " + date + "\\n\\n";
+    notesData += "### Saved: " + getCurrentDateTime() + "\\n";
 
     Object.keys(notesDictionary).forEach(function(bib) {
-        notesData += "Bib: " + bib + "\\n";
+        notesData += "\\n---\\n";
+        notesData += "### Bib: " + bib + " " + namesDictionary[bib] + "\\n";
         notesData += notesDictionary[bib] + "\\n";
-        notesData += "----------------------------------\\n";
     });
 
     let filename = date + '_' + event + '_notes';
     const blob = new Blob([notesData], { type: 'text/plain' });
-    const file = new File([blob], filename+'.txt', { type: 'text/plain' });
+    const file = new File([blob], filename+'.md', { type: 'text/plain' });
 
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        alert("Sharing supported.");
-        //alert("Shared file created.");
         navigator.share({
             title: filename,
             files: [file]
         }).then(() => {
-            alert("Shared success.");
             console.log('Shared successfully');
         }).catch((error) => {
-            alert("Shared error.");
             console.error('Error sharing:', error);
         });
-        alert("Shared. finished");
+        customAlert("Shared: " + filename, 1000);
     } else {
         customAlert("Sharing not supported, download.", 5000);
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = filename+'.txt';  // Set file name
+        a.download = filename+'.md';  // Set file name
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

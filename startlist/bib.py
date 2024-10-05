@@ -19,7 +19,19 @@ function highlightBibNumber(bibNumber, highlightColor, setFlag, debug = false) {
         found = true;
         console.log('highlightBibNumber: set tr: %s', tr.id);    
         tr.style.backgroundColor = highlightColor;
+        if(!(bibNumber in namesDictionary)) {
+            //var tr = event.target.closest('tr');
+            //tr = tr.previousElementSibling;
+            //console.log('HNKD: tr:', tr.id);
+            var tds = tr.querySelectorAll('td');
+            var name = tds[3].innerText;
+            namesDictionary[bibNumber] = name;
+            console.log('HNKD: added name:', name);
+        }
     });
+
+    // get name into namesDictionary
+
         
     return found;
 
