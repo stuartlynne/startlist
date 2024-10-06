@@ -8,6 +8,7 @@ from .genleft import GenLeft
 from .js import js
 from .bib import bib
 from .cookies import cookies
+from .gtag import gtag
 from .notes import notes
 from .reload import reload
 from .toggle import toggle
@@ -112,9 +113,9 @@ class GenHTML:
                     self.doc.asis(css)
 
 
-                # Link to the external JavaScript file for sorting and table toggling
-                #self.doc.asis('<script src="startlist.js"></script>')
-                #self.doc.asis(js)
+                # Add Google Analytics, self contained in gtag.js
+                self.doc.asis(gtag)
+
                 with self.tag('script'):
                     self.doc.asis(js)
                     self.doc.asis(bib)
