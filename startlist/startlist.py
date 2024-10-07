@@ -60,27 +60,25 @@ def export_startlists(host='localhost', date=None, name=None, output_format='xls
         competition_id, competition_name = competition
 
         # Initialize either XLSX or HTML generator based on the flag
-        try:
-            match output_format:
-                case 'xlsx':
-                    generator = GenXLSX(competition_name)
-                case 'html':
-                    generator = GenHTML(competition_name, date)
-                case 'cm':
-                    generator = GenCM(racedb_host, date, competition_id, competition_name, )
-                case _:
-                    print(f"Invalid output format: {output_format}")
-                    exit(1)
-        except:
-            if output_format == 'xlsx':
-                generator = GenXLSX(competition_name)
-            elif output_format == 'html':
-                generator = GenHTML(competition_name, date)
-            elif output_format == 'cm':
-                generator = GenCM(racedb_host, date, competition_id, competition_name, )
-            else:
-                print(f"Invalid output format: {output_format}")
-                exit(1)
+        #match output_format:
+        #    case 'xlsx':
+        #        generator = GenXLSX(competition_name)
+        #    case 'html':
+        #        generator = GenHTML(competition_name, date)
+        #    case 'cm':
+        #        generator = GenCM(racedb_host, date, competition_id, competition_name, )
+        #    case _:
+        #        print(f"Invalid output format: {output_format}")
+        #        exit(1)
+        if output_format == 'xlsx':
+            generator = GenXLSX(competition_name)
+        elif output_format == 'html':
+            generator = GenHTML(competition_name, date)
+        elif output_format == 'cm':
+            generator = GenCM(racedb_host, date, competition_id, competition_name, )
+        else:
+            print(f"Invalid output format: {output_format}")
+            exit(1)
 
         # Query for Mass Start Events for the competition
         cur_execute(cur, "SELECT id, name, date_time FROM core_eventmassstart WHERE competition_id = %s;", (competition_id,))

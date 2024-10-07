@@ -22,7 +22,8 @@ with open("README.md", "rb") as f:
 setup(
     name = "startlist",
     packages = ["startlist",],
-    install_requires = [ "psycopg2", "yattag", "openpyxl", ],
+    #install_requires = [ "psycopg2", "yattag", "openpyxl", ],
+    install_requires = [ "yattag", "openpyxl", ],
     entry_points = {
         "console_scripts": ['startlist = startlist.startlist:main'],
         },
