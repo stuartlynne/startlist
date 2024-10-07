@@ -6,7 +6,7 @@ DATES = $(wildcard *.date)
 HTML = $(DATES:.date=.html)
 
 %.html: %.date
-	python3 startlist-runner.py --date racedb.wg --date $(<:.date=) 
+	python3 startlist-runner.py --crossmgr racedb.wimsey.pro --html --date racedb.wg --date $(<:.date=) 
 
 
 all:
@@ -15,6 +15,9 @@ all:
 test:
 	@echo $(DATES)
 	@echo $(HTML)
+
+test-clean:
+	-rm -f *html *xlsx
 
 lists: $(HTML)
 

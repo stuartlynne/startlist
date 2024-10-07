@@ -12,11 +12,11 @@ class GenXLSX:
         self.row = 1
         self.col = 1
 
-    def add_event(self, event_name, event_start_time):
+    def add_event(self, event_id, event_name, event_start_time):
         self.current_sheet.append([f"{event_name} {event_start_time}"])
         self.row += 1
 
-    def add_wave(self, wave_name, start_offset):
+    def add_wave(self, wave_name, start_offset, distance, laps, minutes, categories, ):
         self.current_sheet.append([f"Wave: {wave_name}, Start Offset: {start_offset}"])
         self.row += 1
 

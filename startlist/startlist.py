@@ -4,6 +4,7 @@ import psycopg2
 from datetime import datetime
 from .genxlsx import GenXLSX
 from .genhtml import GenHTML
+from .gencm import GenCM
 
 __version__ = "0.1.0"
 
@@ -32,7 +33,7 @@ def cur_execute(cur, query, params):
     log_sql(query, params)
     cur.execute(query, params)
 
-def export_startlists(host='localhost', date=None, name=None, output_format='xlsx'):
+def export_startlists(host='localhost', date=None, name=None, output_format='xlsx', racedb_host=None):
     try:
         # Connect to PostgreSQL database
         conn = psycopg2.connect(
@@ -59,10 +60,17 @@ def export_startlists(host='localhost', date=None, name=None, output_format='xls
         competition_id, competition_name = competition
 
         # Initialize either XLSX or HTML generator based on the flag
-        if output_format == 'xlsx':
-            generator = GenXLSX(competition_name)
-        else:
-            generator = GenHTML(competition_name, date)
+        match output_format:
+            case 'xlsx':
+                generator = GenXLSX(competition_name)
+            case 'html':
+                generator = GenHTML(competition_name, date)
+            case 'cm':
+                generator = GenCM(racedb_host, date, competition_id, competition_name, )
+            case _:
+                print(f"Invalid output format: {output_format}")
+                exit(1)
+
 
         # Query for Mass Start Events for the competition
         cur_execute(cur, "SELECT id, name, date_time FROM core_eventmassstart WHERE competition_id = %s;", (competition_id,))
@@ -70,7 +78,7 @@ def export_startlists(host='localhost', date=None, name=None, output_format='xls
 
         for event_id, event_name, event_start_time in events:
             event_start_time = remove_tzinfo(event_start_time)  # Strip timezone info
-            event_section_id = generator.add_event(event_name, event_start_time)
+            event_section_id = generator.add_event(event_id, event_name, event_start_time)
 
             # Query for all waves for the event
             #cur_execute(cur, "SELECT id, name, date_time FROM core_eventmassstart WHERE competition_id = %s;", (competition_id,))
@@ -149,13 +157,20 @@ def main():
     parser.add_argument('--name', type=str, help='Name of the competition.')
     parser.add_argument('--xlsx', action='store_true', help='Generate XLSX output')
     parser.add_argument('--html', action='store_true', help='Generate HTML output')
+    parser.add_argument("--crossmgr", required=True, help="The RaceDB host for downloading files.")
 
     args = parser.parse_args()
 
     formatted_date = format_date(args.date) if args.date else None
 
-    output_format = 'xlsx' if args.xlsx else 'html'
-    export_startlists(args.host, date=formatted_date, name=args.name, output_format=output_format)
+    if args.xlsx:
+        export_startlists(args.host, date=formatted_date, name=args.name, output_format='xlsx',)
+
+    if args.html:
+        export_startlists(args.host, date=formatted_date, name=args.name, output_format='html',)
+
+    if args.crossmgr:
+        export_startlists(args.host, date=formatted_date, name=args.name, output_format='cm', racedb_host=args.crossmgr)
 
 if __name__ == "__main__":
     main()

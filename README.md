@@ -2,8 +2,12 @@
 # Thu Sep 26 03:58:26 PM PDT 2024
 
 *startlist* is a Python script to generate an HTML interactive start list for 
-races created in *RaceDB*. 
+races created in *RaceDB* and download CrossMgr files. 
 
+## CrossMgr
+The script will download all of the CrossMgr files for a specific date and competition.
+
+## StartList
 This script is self-contained, all processing is done client side making it
 possible to host the file on a *Static Website.*
 
@@ -27,9 +31,6 @@ Officials will have:
 - List of participants with bib numbers for each start wave
 
 Cookies maintain the notes and selections when the page is refreshed.
-
-
-The script is written in Python. 
 
 - for a specific date find the corresponding RaceDB competition using SQL
 - generates an HTML page that has a list of the events for the competition
@@ -95,6 +96,47 @@ We use our results website. Officials know that they can get the start-list
 there, and reload it just before each race starts to get any updates since
 the last race etc.
 
+For my events I use a file hierarchy like:
+```
+   .../2024/series/LMCX2024/20200923-Vanier/
+   .../2024/series/LMCX2024/20200923-Vanier/Makefile
+   .../2024/series/LMCX2024/20200923-Vanier/2024-09-22-Vanier-Race 1.xlsx
+   .../2024/series/LMCX2024/20200923-Vanier/2024-09-22-Vanier-Race 1-r1-.cmn
+   .../2024/series/LMCX2024/20200923-Vanier/2024-09-22-Vanier-Race 1-r1-.html
+   .../2024/series/LMCX2024/20200923-Vanier/2024-09-22-Vanier-Race 1-r1-.xlsx
+   .../2024/series/LMCX2024/20200923-Vanier/2024-09-22-Vanier-startlist.html
+
+```
+
+A Makefile is used to generate the start-list, download the CrossMgr files, and sync the startlists and results to the website.
+
+From the command line (typically Cygwin in Windows), I would run the following
+before the first race, and then after each race after the results are generated,
+and to get the startlist and CrossMgr files updated for the next race.
+
+```
+   cd .../2024/series/LMCX2024/20200923-Vanier/
+   make 
+```
+
+Where Makefile is:
+```
+all: startlist crossmgr sync
+   @echo "make startlist crossmgr sync"
+
+startlist:
+      startlist --html --host racedb.wg --date $$(expr $$(pwd) : '.*/\(.*\)-.*')
+
+crossmgr:
+      startlist --crossmgr --host racedb.wg --date $$(expr $$(pwd) : '.*/\(.*\)-.*')
+
+sync:
+      aws s3 sync . s3://results.wimsey.co/2024/series/LMCX2024/20200923-Vanier/ \
+         --include='*.html' 
+```
+
+N.b. The actual makefile is slightly more complex, it determines the S3 path
+based on the file hierarchy.
 
 
 
