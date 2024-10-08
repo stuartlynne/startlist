@@ -95,9 +95,8 @@ class GenRight:
             # Generate the Event Wave tables
             for event_id, event_info in self.parent.data.items():
                 wave_table_all_id = self.parent.wave_table_all_id(event_id)
-                print(f"Generating event table with ID: {event_id} {wave_table_all_id}")
-                
-                print(f"Generating all waves table with ID: {wave_table_all_id}")
+                #print(f"Generating event table with ID: {event_id} {wave_table_all_id}", file=sys.stderr)
+                #print(f"Generating all waves table with ID: {wave_table_all_id}", file=sys.stderr)
                 # Event Table all waves participants
                 event_name = event_id.replace("event-", "").replace("_", " ").title()
                 waves = [(wave_name.replace('Wave ','').upper(), wave_data['start_offset']) 
@@ -124,7 +123,7 @@ class GenRight:
 
                     wave_table_id = self.parent.wave_table_id(event_id, wave_name)
                     wave_table_all_id = self.parent.wave_table_all_id(event_id)
-                    print(f"Generating wave table with ID: {event_id} {wave_table_id} {wave_table_all_id}")
+                    #print(f"Generating wave table with ID: {event_id} {wave_table_id} {wave_table_all_id}", file=sys.stderr)
 
                     categories = set([participant['category_code'] for participant in wave_data['participants']])
 

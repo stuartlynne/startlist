@@ -151,8 +151,8 @@ class GenLeft:
                             event_info_cell_id = self.parent.event_info_cell_id(event_id)
                             event_info_id = self.parent.event_info_id(event_id)
                             wave_table_all_id = self.parent.wave_table_all_id(event_id)
-                            print(f"Generating event row for {event_id} info {event_info} {event_info_cell_id} {event_info_id} {wave_table_all_id}", 
-                                  file=sys.stderr)
+                            #print(f"Generating event row for {event_id} info {event_info} {event_info_cell_id} {event_info_id} {wave_table_all_id}", 
+                            #      file=sys.stderr)
                             #with self.tag('td', klass="select-thtd", style="text-align:left",):
                             #    self.text(event)
                             with self.tag('td', klass="select-thtd", id=event_info_cell_id,
@@ -179,7 +179,7 @@ class GenLeft:
                             participant_counts = ', '.join([str(v) for v in Counter([participant['category_code']
                                                                         for participant in wave_data['participants']]).values()])
 
-                            print('wavedata', wave_data, file=sys.stderr)
+                            #print('wavedata', wave_data, file=sys.stderr)
 
                             categories = [f"{code} {['M', 'W', 'O'][gender] if gender in [0,1,2] else ''}" for
                                           id, code, gender, description in wave_data['categories']]
@@ -194,5 +194,5 @@ class GenLeft:
                     waves = [(wave_name.replace('Wave ','').upper(), start_mmss,
                               wave_data['distance'], wave_data['laps'], wave_data['minutes']) 
                              for wave_name, wave_data in event_info['waves'].items()]
-                    print(f"Generating event info table with ID: {event_info_id} {waves}", file=sys.stderr)
+                    #print(f"Generating event info table with ID: {event_info_id} {waves}", file=sys.stderr)
 

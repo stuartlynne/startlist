@@ -35,8 +35,8 @@ class GenCM:
                 file_name = f"{self.date}-{self.competition_name.replace(' ', '_')}_{i}.xlsx"
                 with open(file_name, "wb") as file:
                     file.write(response.content)
-                print(f"Downloaded event {event_id} as {file_name}")
+                print(f"Downloaded event {event_id} as {file_name}", file=sys.stderr)
             else:
-                print(f"Failed to download event {self.event_id} from {url}")
+                print(f"Failed to download event {self.event_id} from {url}", file=sys.stderr)
 
 

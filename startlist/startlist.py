@@ -33,7 +33,9 @@ def cur_execute(cur, query, params):
     log_sql(query, params)
     cur.execute(query, params)
 
-def export_startlists(host='localhost', date=None, name=None, output_format='xlsx', racedb_host=None):
+def export_startlists(host='localhost', date=None, name=None, output_formats=None, racedb_host=None):
+    generators = []
+
     try:
         # Connect to PostgreSQL database
         conn = psycopg2.connect(
@@ -55,29 +57,17 @@ def export_startlists(host='localhost', date=None, name=None, output_format='xls
         
         competition = cur.fetchone()
         if not competition:
-            print(f"No competition found for {name or date}.")
+            print(f"No competition found for {name or date}.", file=sys.stderr)
             return
         competition_id, competition_name = competition
-
-        # Initialize either XLSX or HTML generator based on the flag
-        #match output_format:
-        #    case 'xlsx':
-        #        generator = GenXLSX(competition_name)
-        #    case 'html':
-        #        generator = GenHTML(competition_name, date)
-        #    case 'cm':
-        #        generator = GenCM(racedb_host, date, competition_id, competition_name, )
-        #    case _:
-        #        print(f"Invalid output format: {output_format}")
-        #        exit(1)
-        if output_format == 'xlsx':
-            generator = GenXLSX(competition_name)
-        elif output_format == 'html':
-            generator = GenHTML(competition_name, date)
-        elif output_format == 'cm':
-            generator = GenCM(racedb_host, date, competition_id, competition_name, )
-        else:
-            print(f"Invalid output format: {output_format}")
+        if 'xlsx' in output_formats:
+            generators.append(GenXLSX(competition_name))
+        if 'html' in output_formats:
+            generators.append(GenHTML(competition_name, date))
+        if 'cm' in output_formats:
+            generators.append(GenCM(racedb_host, date, competition_id, competition_name, ))
+        if generators == []:
+            print(f"Invalid output format: {output_format}", file=sys.stderr)
             exit(1)
 
         # Query for Mass Start Events for the competition
@@ -86,7 +76,8 @@ def export_startlists(host='localhost', date=None, name=None, output_format='xls
 
         for event_id, event_name, event_start_time in events:
             event_start_time = remove_tzinfo(event_start_time)  # Strip timezone info
-            event_section_id = generator.add_event(event_id, event_name, event_start_time)
+            for generator in generators:
+                event_section_id = generator.add_event(event_id, event_name, event_start_time)
 
             # Query for all waves for the event
             #cur_execute(cur, "SELECT id, name, date_time FROM core_eventmassstart WHERE competition_id = %s;", (competition_id,))
@@ -109,12 +100,13 @@ def export_startlists(host='localhost', date=None, name=None, output_format='xls
                     WHERE wcat.wave_id = %s;
                 """, (wave_id,))
                 categories = cur.fetchall()
-                generator.add_wave(wave_name, start_offset, distance, laps, minutes, categories)
-                log_debug(f"Categories found for wave {wave_name}: {categories}")
+                for generator in generators:
+                    generator.add_wave(wave_name, start_offset, distance, laps, minutes, categories)
+                #log_debug(f"Categories found for wave {wave_name}: {categories}")
 
                 # Now, find participants for each category within the wave
                 for category_id, category_code, category_gender, category_description in categories:
-                    log_debug(f"Processing category {category_code} for wave {wave_name}")
+                    #log_debug(f"Processing category {category_code} for wave {wave_name}")
                     cur_execute(cur,"""
                         SELECT lh.first_name, lh.last_name, lh.license_code, p.bib, lh.uci_id, t.name as team_name
                         FROM core_participant p
@@ -125,13 +117,13 @@ def export_startlists(host='localhost', date=None, name=None, output_format='xls
                         (competition_id, category_id))
 
                     participants = cur.fetchall()
-                    log_debug(f"Participants found for wave {wave_name} and category {category_code}: {participants}")
+                    #log_debug(f"Participants found for wave {wave_name} and category {category_code}: {participants}")
 
-                    for participant in participants:
-                        log_debug(f"Adding participant: {participant}")
+                    #for participant in participants:
+                    #    log_debug(f"Adding participant: {participant}")
             
                     for participant in participants:
-                        print('Participant:', participant, file=sys.stderr)
+                        #print('Participant:', participant, file=sys.stderr)
                         first_name, last_name, license_code, bib, uci_id, team_name = participant  
 
                         #generator.add_participant(event_section_id, wave_name, participant)
@@ -144,16 +136,18 @@ def export_startlists(host='localhost', date=None, name=None, output_format='xls
                           'category_code': category_code,
                           'uci_id': uci_id
                         }
-                        print(f"Adding participant: {formatted_participant}", file=sys.stderr)
-                        generator.add_participant(None, wave_name, formatted_participant)
+                        #print(f"Adding participant: {formatted_participant}", file=sys.stderr)
+                        for generator in generators:
+                            generator.add_participant(None, wave_name, formatted_participant)
 
 
         # Save the generated file
-        output_filename = generator.save()
-        print(f"File generated: {output_filename}")
+        for generator in generators:
+            output_filename = generator.save()
+        #print(f"File generated: {output_filename}", file=sys.stderr)
 
     except psycopg2.DatabaseError as error:
-        print(f"Database error: {error}")
+        print(f"Database error: {error}", file=sys.stderr)
     finally:
         cur.close()
         conn.close()
@@ -171,14 +165,17 @@ def main():
 
     formatted_date = format_date(args.date) if args.date else None
 
+    output_formats = []
     if args.xlsx:
-        export_startlists(args.host, date=formatted_date, name=args.name, output_format='xlsx',)
+        output_formats.append('xlsx')
 
     if args.html:
-        export_startlists(args.host, date=formatted_date, name=args.name, output_format='html',)
+        output_formats.append('html')
 
     if args.crossmgr:
-        export_startlists(args.host, date=formatted_date, name=args.name, output_format='cm', racedb_host=args.crossmgr)
+        output_formats.append('cm')
+
+    export_startlists(args.host, date=formatted_date, name=args.name, output_formats=output_formats, racedb_host=args.crossmgr)
 
 if __name__ == "__main__":
     main()

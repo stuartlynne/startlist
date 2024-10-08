@@ -130,7 +130,7 @@ class GenHTML:
 
 
     def add_event(self, event_id, event_name, event_start_time):
-        print(f"Adding event: {event_name}", file=sys.stderr)
+        #print(f"Adding event: {event_name}", file=sys.stderr)
         #event_section_id = f"event-{event_name.replace(' ', '_')}"
         event_section_id = f"event-{event_name.replace('Race #', '')}."
         self.data[event_section_id] = {
