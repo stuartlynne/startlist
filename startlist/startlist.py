@@ -155,7 +155,8 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
                     FROM core_participant p
                     LEFT JOIN core_licenseholder lh ON p.license_holder_id = lh.id
                     LEFT JOIN core_team t ON p.team_id = t.id
-                    WHERE p.competition_id = %s AND p.category_id = %s;
+                    WHERE p.competition_id = %s AND p.category_id = %s
+                    ORDER BY p.bib ASC;
                     """,
                     (competition_id, category_id), debug=debug)
 
