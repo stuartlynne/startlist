@@ -23,14 +23,15 @@ def remove_tzinfo(dt):
 def log_debug(message):
     print(message, file=sys.stderr)
 
-def log_sql(query, params):
+def log_sql(query, params, debug=True):
     """Logs the fully expanded SQL query with parameters."""
     expanded_query = query % tuple(map(lambda x: f"'{x}'" if isinstance(x, str) else str(x), params))
-    log_debug(f"Executing SQL: {expanded_query}")
+    if debug:
+            log_debug(f"Executing SQL: {expanded_query}")
 
-def cur_execute(cur, query, params):
+def cur_execute(cur, query, params, debug=True):
     """Executes a query with parameters and logs the expanded query."""
-    log_sql(query, params)
+    log_sql(query, params, debug=debug)
     cur.execute(query, params)
 
 def export_startlists(host='localhost', date=None, name=None, output_formats=None, racedb_host=None):
@@ -50,28 +51,28 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
         # Query to find the competition based on date or name
         if name:
             competition_query = "SELECT id, name, long_name FROM core_competition WHERE name = %s;"
-            cur_execute(cur, competition_query, (name,))
+            cur_execute(cur, competition_query, (name,), debug=False)
         else:
             competition_query = "SELECT id, name, long_name FROM core_competition WHERE start_date = %s;"
-            cur_execute(cur, competition_query, (date,))
+            cur_execute(cur, competition_query, (date,), debug=False)
         
         competition = cur.fetchone()
         if not competition:
             print(f"No competition found for {name or date}.", file=sys.stderr)
             return
-        competition_id, competition_name = competition
+        competition_id, competition_name, competition_long_name = competition
         if 'xlsx' in output_formats:
             generators.append(GenXLSX(competition_name))
         if 'html' in output_formats:
             generators.append(GenHTML(competition_name, date))
         if 'cm' in output_formats:
-            generators.append(GenCM(racedb_host, date, competition_id, competition_name, ))
+            generators.append(GenCM(racedb_host, date, competition_id, competition_long_name, ))
         if generators == []:
-            print(f"Invalid output format: {output_format}", file=sys.stderr)
+            print(f"Invalid output format: {output_formats}", file=sys.stderr)
             exit(1)
 
         # Query for Mass Start Events for the competition
-        cur_execute(cur, "SELECT id, name, date_time FROM core_eventmassstart WHERE competition_id = %s;", (competition_id,))
+        cur_execute(cur, "SELECT id, name, date_time FROM core_eventmassstart WHERE competition_id = %s;", (competition_id,), debug=False)
         events = cur.fetchall()
 
         for event_id, event_name, event_start_time in events:
@@ -81,7 +82,7 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
 
             # Query for all waves for the event
             #cur_execute(cur, "SELECT id, name, date_time FROM core_eventmassstart WHERE competition_id = %s;", (competition_id,))
-            cur_execute(cur, "SELECT id, name, start_offset, distance, laps, minutes FROM core_wave WHERE event_id = %s;", (event_id,))
+            cur_execute(cur, "SELECT id, name, start_offset, distance, laps, minutes FROM core_wave WHERE event_id = %s;", (event_id,), debug=False)
             waves = cur.fetchall()
 
             # Sort waves by start_offset
@@ -98,7 +99,7 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
                     FROM core_wave_categories wcat
                     JOIN core_category c ON wcat.category_id = c.id
                     WHERE wcat.wave_id = %s;
-                """, (wave_id,))
+                """, (wave_id,), debug=False)
                 categories = cur.fetchall()
                 for generator in generators:
                     generator.add_wave(wave_name, start_offset, distance, laps, minutes, categories)
@@ -114,7 +115,7 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
                         LEFT JOIN core_team t ON p.team_id = t.id
                         WHERE p.competition_id = %s AND p.category_id = %s;
                         """,
-                        (competition_id, category_id))
+                        (competition_id, category_id), debug=False)
 
                     participants = cur.fetchall()
                     #log_debug(f"Participants found for wave {wave_name} and category {category_code}: {participants}")
@@ -159,7 +160,7 @@ def main():
     parser.add_argument('--name', type=str, help='Name of the competition.')
     parser.add_argument('--xlsx', action='store_true', help='Generate XLSX output')
     parser.add_argument('--html', action='store_true', help='Generate HTML output')
-    parser.add_argument("--crossmgr", required=True, help="The RaceDB host for downloading files.")
+    parser.add_argument("--crossmgr", required=False, help="The RaceDB host for downloading files.")
 
     args = parser.parse_args()
 
