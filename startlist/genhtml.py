@@ -12,7 +12,6 @@ from .gtag import gtag
 from .notes import notes
 from .reload import reload
 from .toggle import toggle
-from .info import info
 
 from .css import css
 
