@@ -92,7 +92,7 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
         if 'xlsx' in output_formats:
             generators.append(GenXLSX(competition_name))
         if 'html' in output_formats:
-            generators.append(GenHTML(competition_name, date))
+            generators.append(GenHTML(host, competition_name, date))
         if 'cm' in output_formats:
             generators.append(GenCM(racedb_host, date, competition_id, competition_long_name, ))
         if generators == []:

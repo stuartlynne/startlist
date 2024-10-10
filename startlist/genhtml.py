@@ -12,6 +12,7 @@ from .gtag import gtag
 from .notes import notes
 from .reload import reload
 from .toggle import toggle
+from .info import info
 
 from .css import css
 
@@ -52,7 +53,7 @@ class GenHTML:
         return self.clean_id(f"wti_{event_id}_{bib}")
          
 
-    def __init__(self, competition_name, competition_date):
+    def __init__(self, host, competition_name, competition_date):
         self.competition_name = competition_name
         self.competition_date = competition_date
         self.doc, self.tag, self.text = Doc().tagtext()
@@ -67,6 +68,7 @@ class GenHTML:
 
         # Initialize the HTML structure
         self.doc.asis('<!DOCTYPE html>')
+        self.doc.asis(f"<!-- Generated from {host} using https://github.com/stuartlynne/startlist.git -->")
         # Event information and search table
         with self.tag('html'):
             with self.tag('head'):
