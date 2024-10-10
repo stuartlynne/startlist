@@ -76,10 +76,10 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
 
         if name:
             competition_query = "SELECT id, name, long_name FROM core_competition WHERE name = %s;"
-            cur_execute(f'Find competition by name {name}', cur, competition_query,  (name,), debug=True)
+            cur_execute(f'Find competition by name {name}', cur, competition_query,  (name,), debug=False)
         else:
             competition_query = "SELECT id, name, long_name FROM core_competition WHERE start_date = %s;"
-            cur_execute(f'Find competition by date {date}', cur, competition_query, (date,), debug=True)
+            cur_execute(f'Find competition by date {date}', cur, competition_query, (date,), debug=False)
         
         competition = cur.fetchone()
         if not competition:
@@ -103,9 +103,9 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
 
         # Query to find the competition based on date or name
         if name:
-            cur_execute(f'Find competition by name {name}', cur, full_competition_query % ('name', name,), None, debug=True)
+            cur_execute(f'Find competition by name {name}', cur, full_competition_query % ('name', name,), None, debug=False)
         else:
-            cur_execute(f'Find competition by date {date}', cur, full_competition_query % ('start_date', date,), None, debug=True)
+            cur_execute(f'Find competition by date {date}', cur, full_competition_query % ('start_date', date,), None, debug=False)
         
         #competition = cur.fetchone()
         competitions = cur.fetchall()
@@ -133,7 +133,7 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
                     generator.add_event(event_id, event_name, event_start_time)
                 last_event_id = event_id
 
-            for generator in generators:
+            #for generator in generators:
                 generator.add_wave(wave_name, start_offset, distance, laps, minutes, [])
 
             cur_execute(f'Get wave categories {wave_id}', cur, """
