@@ -6,7 +6,7 @@ from .genxlsx import GenXLSX
 from .genhtml import GenHTML
 from .gencm import GenCM
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 
 def format_date(input_date):
@@ -47,17 +47,17 @@ def export_startlists(host='localhost', date=None, name=None, output_format='xls
 
         # Query to find the competition based on date or name
         if name:
-            competition_query = "SELECT id, name FROM core_competition WHERE name = %s;"
+            competition_query = "SELECT id, name, long_name FROM core_competition WHERE name = %s;"
             cur_execute(cur, competition_query, (name,))
         else:
-            competition_query = "SELECT id, name FROM core_competition WHERE start_date = %s;"
+            competition_query = "SELECT id, name, long_name FROM core_competition WHERE start_date = %s;"
             cur_execute(cur, competition_query, (date,))
         
         competition = cur.fetchone()
         if not competition:
             print(f"No competition found for {name or date}.")
             return
-        competition_id, competition_name = competition
+        competition_id, competition_name, competition_long_name = competition
 
         # Initialize either XLSX or HTML generator based on the flag
         #match output_format:
@@ -75,7 +75,7 @@ def export_startlists(host='localhost', date=None, name=None, output_format='xls
         elif output_format == 'html':
             generator = GenHTML(competition_name, date)
         elif output_format == 'cm':
-            generator = GenCM(racedb_host, date, competition_id, competition_name, )
+            generator = GenCM(racedb_host, date, competition_id, competition_long_name,  )
         else:
             print(f"Invalid output format: {output_format}")
             exit(1)
