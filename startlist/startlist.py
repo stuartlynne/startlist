@@ -25,18 +25,44 @@ def log_debug(message):
 
 def log_sql(query, params, debug=True):
     """Logs the fully expanded SQL query with parameters."""
-    expanded_query = query % tuple(map(lambda x: f"'{x}'" if isinstance(x, str) else str(x), params))
+    expanded_query = query % tuple(map(lambda x: f"'{x}'" if isinstance(x, str) else str(x), params)) if params else query
     if debug:
             log_debug(f"Executing SQL: {expanded_query}")
 
-def cur_execute(cur, query, params, debug=True):
+def cur_execute(msg, cur, query, params, debug=True):
     """Executes a query with parameters and logs the expanded query."""
+    log_debug(msg)
     log_sql(query, params, debug=debug)
     cur.execute(query, params)
+
+full_competition_query = """
+SELECT 
+    c.id AS competition_id, 
+    c.name AS competition_name, 
+    c.long_name AS competition_long_name, 
+    e.id AS event_id, 
+    e.name AS event_name, 
+    e.date_time AS event_start_time,
+    w.id AS wave_id, 
+    w.name AS wave_name, 
+    w.start_offset, 
+    w.distance, 
+    w.laps, 
+    w.minutes
+FROM 
+    core_competition c
+JOIN 
+    core_eventmassstart e ON e.competition_id = c.id
+LEFT JOIN 
+    core_wave w ON w.event_id = e.id
+WHERE 
+    c.%s = '%s';
+        """
 
 def export_startlists(host='localhost', date=None, name=None, output_formats=None, racedb_host=None):
     generators = []
 
+    debug = False
     try:
         # Connect to PostgreSQL database
         conn = psycopg2.connect(
@@ -48,19 +74,21 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
         )
         cur = conn.cursor()
 
-        # Query to find the competition based on date or name
         if name:
             competition_query = "SELECT id, name, long_name FROM core_competition WHERE name = %s;"
-            cur_execute(cur, competition_query, (name,), debug=False)
+            cur_execute(f'Find competition by name {name}', cur, competition_query,  (name,), debug=True)
         else:
             competition_query = "SELECT id, name, long_name FROM core_competition WHERE start_date = %s;"
-            cur_execute(cur, competition_query, (date,), debug=False)
+            cur_execute(f'Find competition by date {date}', cur, competition_query, (date,), debug=True)
         
         competition = cur.fetchone()
         if not competition:
-            print(f"No competition found for {name or date}.", file=sys.stderr)
-            return
+             print(f"No competition found for {name or date}.", file=sys.stderr)
+             return
         competition_id, competition_name, competition_long_name = competition
+        print(f"Competition found: {competition}", file=sys.stderr)
+
+
         if 'xlsx' in output_formats:
             generators.append(GenXLSX(competition_name))
         if 'html' in output_formats:
@@ -71,75 +99,91 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
             print(f"Invalid output format: {output_formats}", file=sys.stderr)
             exit(1)
 
-        # Query for Mass Start Events for the competition
-        cur_execute(cur, "SELECT id, name, date_time FROM core_eventmassstart WHERE competition_id = %s;", (competition_id,), debug=False)
-        events = cur.fetchall()
 
-        for event_id, event_name, event_start_time in events:
+
+        # Query to find the competition based on date or name
+        if name:
+            cur_execute(f'Find competition by name {name}', cur, full_competition_query % ('name', name,), None, debug=True)
+        else:
+            cur_execute(f'Find competition by date {date}', cur, full_competition_query % ('start_date', date,), None, debug=True)
+        
+        #competition = cur.fetchone()
+        competitions = cur.fetchall()
+        if not competitions:
+            print(f"No competition found for {name or date}.", file=sys.stderr)
+            return
+        #print(f"Competition found: {competition}", file=sys.stderr)
+
+        last_event_id = None
+        for competition in competitions:
+            if not competition:
+                print(f"No competition found for {name or date}.", file=sys.stderr)
+                return
+            #print(f"Competition found: {competition}", file=sys.stderr)
+            (competition_id, competition_name, competition_long_name, event_id, event_name, 
+                event_start_time, wave_id, wave_name, start_offset, distance, laps, minutes) = competition
+
             event_start_time = remove_tzinfo(event_start_time)  # Strip timezone info
-            for generator in generators:
-                event_section_id = generator.add_event(event_id, event_name, event_start_time)
 
-            # Query for all waves for the event
-            #cur_execute(cur, "SELECT id, name, date_time FROM core_eventmassstart WHERE competition_id = %s;", (competition_id,))
-            cur_execute(cur, "SELECT id, name, start_offset, distance, laps, minutes FROM core_wave WHERE event_id = %s;", (event_id,), debug=False)
-            waves = cur.fetchall()
-
-            # Sort waves by start_offset
-            waves_sorted = sorted(waves, key=lambda wave: wave[2])  # Sorting by start_offset
-            log_debug(f"Waves found for event {event_name}: {waves}")
-
-            # Query for Waves and their Categories
-            # For each wave, fetch its categories and the participants in those categories
-            for wave_id, wave_name, start_offset, distance, laps, minutes in waves_sorted:
+            print(f"Competition found: {competition_id, competition_name, competition_long_name, event_id, event_name, event_start_time, wave_id, wave_name, start_offset, distance, laps, minutes}", file=sys.stderr)
 
 
-                cur_execute(cur, """
-                    SELECT c.id, c.code, c.gender, c.description
-                    FROM core_wave_categories wcat
-                    JOIN core_category c ON wcat.category_id = c.id
-                    WHERE wcat.wave_id = %s;
-                """, (wave_id,), debug=False)
-                categories = cur.fetchall()
+            if not last_event_id or last_event_id != event_id:
                 for generator in generators:
-                    generator.add_wave(wave_name, start_offset, distance, laps, minutes, categories)
-                #log_debug(f"Categories found for wave {wave_name}: {categories}")
+                    generator.add_event(event_id, event_name, event_start_time)
+                last_event_id = event_id
 
-                # Now, find participants for each category within the wave
-                for category_id, category_code, category_gender, category_description in categories:
-                    #log_debug(f"Processing category {category_code} for wave {wave_name}")
-                    cur_execute(cur,"""
-                        SELECT lh.first_name, lh.last_name, lh.license_code, p.bib, lh.uci_id, t.name as team_name
-                        FROM core_participant p
-                        LEFT JOIN core_licenseholder lh ON p.license_holder_id = lh.id
-                        LEFT JOIN core_team t ON p.team_id = t.id
-                        WHERE p.competition_id = %s AND p.category_id = %s;
-                        """,
-                        (competition_id, category_id), debug=False)
+            for generator in generators:
+                generator.add_wave(wave_name, start_offset, distance, laps, minutes, [])
 
-                    participants = cur.fetchall()
-                    #log_debug(f"Participants found for wave {wave_name} and category {category_code}: {participants}")
+            cur_execute(f'Get wave categories {wave_id}', cur, """
+                SELECT c.id, c.code, c.gender, c.description
+                FROM core_wave_categories wcat
+                JOIN core_category c ON wcat.category_id = c.id
+                WHERE wcat.wave_id = %s;
+            """, (wave_id,), debug=debug)
+            categories = cur.fetchall()
+            for generator in generators:
+                generator.add_wave(wave_name, start_offset, distance, laps, minutes, categories)
+            #log_debug(f"Categories found for wave {wave_name}: {categories}")
 
-                    #for participant in participants:
-                    #    log_debug(f"Adding participant: {participant}")
-            
-                    for participant in participants:
-                        #print('Participant:', participant, file=sys.stderr)
-                        first_name, last_name, license_code, bib, uci_id, team_name = participant  
+            # Now, find participants for each category within the wave
+            for category_id, category_code, category_gender, category_description in categories:
+                #log_debug(f"Processing category {category_code} for wave {wave_name}")
+                cur_execute(f'Get participants for each wave {competition_id, category_id}', cur,"""
+                    SELECT lh.first_name, lh.last_name, lh.license_code, p.bib, lh.uci_id, t.name as team_name
+                    FROM core_participant p
+                    LEFT JOIN core_licenseholder lh ON p.license_holder_id = lh.id
+                    LEFT JOIN core_team t ON p.team_id = t.id
+                    WHERE p.competition_id = %s AND p.category_id = %s;
+                    """,
+                    (competition_id, category_id), debug=debug)
 
-                        #generator.add_participant(event_section_id, wave_name, participant)
-                        formatted_participant = {
-                          'bib': bib,
-                          'first_name': first_name,
-                          'last_name': last_name,
-                          'team_name': team_name,
-                          'wave_name': wave_name,
-                          'category_code': category_code,
-                          'uci_id': uci_id
-                        }
-                        #print(f"Adding participant: {formatted_participant}", file=sys.stderr)
-                        for generator in generators:
-                            generator.add_participant(None, wave_name, formatted_participant)
+                participants = cur.fetchall()
+                #log_debug(f"Participants found for wave {wave_name} and category {category_code}: {participants}")
+
+                #for participant in participants:
+                #    log_debug(f"Adding participant: {participant}")
+        
+                for participant in participants:
+                    #print('Participant:', participant, file=sys.stderr)
+                    first_name, last_name, license_code, bib, uci_id, team_name = participant  
+
+                    #generator.add_participant(event_section_id, wave_name, participant)
+                    formatted_participant = {
+                      'bib': bib,
+                      'first_name': first_name,
+                      'last_name': last_name,
+                      'team_name': team_name,
+                      'wave_name': wave_name,
+                      'category_code': category_code,
+                      'uci_id': uci_id
+                    }
+                    #print(f"Adding participant: {formatted_participant}", file=sys.stderr)
+                    for generator in generators:
+                        generator.add_participant(None, wave_name, formatted_participant)
+
+
 
 
         # Save the generated file
