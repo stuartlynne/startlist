@@ -10,6 +10,7 @@ from urllib.parse import urljoin
 
 class GenCM:
     def __init__(self, racedb_host, date, competition_id, competition_name):
+        print('GenCM:', racedb_host, date, competition_id, competition_name, file=sys.stderr)
         self.racedb_host = racedb_host
         self.date = date
         self.competition_id = competition_id

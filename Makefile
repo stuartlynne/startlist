@@ -5,8 +5,10 @@
 DATES = $(wildcard *.date)
 HTML = $(DATES:.date=.html)
 
+#%.html: %.date
+#	python3 startlist-runner.py --crossmgr racedb.wimsey.online --html --date racedb.wg --date $(<:.date=) 
 %.html: %.date
-	python3 startlist-runner.py --crossmgr racedb.wimsey.online --html --date racedb.wg --date $(<:.date=) 
+	python3 startlist-runner.py --html --audit --host racedb.wg --date $(<:.date=) 
 
 
 all:

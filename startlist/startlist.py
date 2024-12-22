@@ -5,6 +5,7 @@ from datetime import datetime
 from .genxlsx import GenXLSX
 from .genhtml import GenHTML
 from .gencm import GenCM
+from .genaudit import GenAudit
 
 __version__ = "0.2.0"
 
@@ -62,7 +63,7 @@ WHERE
 def export_startlists(host='localhost', date=None, name=None, output_formats=None, racedb_host=None):
     generators = []
 
-    debug = False
+    debug = True
     try:
         # Connect to PostgreSQL database
         conn = psycopg2.connect(
@@ -79,7 +80,7 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
             cur_execute(f'Find competition by name {name}', cur, competition_query,  (name,), debug=False)
         else:
             competition_query = "SELECT id, name, long_name FROM core_competition WHERE start_date = %s;"
-            cur_execute(f'Find competition by date {date}', cur, competition_query, (date,), debug=False)
+            cur_execute(f'Find competition by date {date}', cur, competition_query, (date,), debug=True)
         
         competition = cur.fetchone()
         if not competition:
@@ -87,6 +88,7 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
              return
         competition_id, competition_name, competition_long_name = competition
         print(f"Competition found: {competition}", file=sys.stderr)
+        print("Output formats:", output_formats, file=sys.stderr)
 
 
         if 'xlsx' in output_formats:
@@ -95,6 +97,8 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
             generators.append(GenHTML(host, competition_name, date))
         if 'cm' in output_formats:
             generators.append(GenCM(racedb_host, date, competition_id, competition_long_name, ))
+        if 'audit' in output_formats:
+            generators.append(GenAudit(racedb_host, date, competition_id, competition_long_name, ))
         if generators == []:
             print(f"Invalid output format: {output_formats}", file=sys.stderr)
             exit(1)
@@ -151,7 +155,8 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
             for category_id, category_code, category_gender, category_description in categories:
                 #log_debug(f"Processing category {category_code} for wave {wave_name}")
                 cur_execute(f'Get participants for each wave {competition_id, category_id}', cur,"""
-                    SELECT lh.first_name, lh.last_name, lh.license_code, p.bib, lh.uci_id, t.name as team_name
+                    SELECT lh.first_name, lh.last_name, lh.license_code, p.bib, lh.uci_id, t.name as team_name,
+                        p.preregistered, p.registration_timestamp, p.tag_checked, p.license_checked, p.paid, p.confirmed
                     FROM core_participant p
                     LEFT JOIN core_licenseholder lh ON p.license_holder_id = lh.id
                     LEFT JOIN core_team t ON p.team_id = t.id
@@ -168,7 +173,7 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
         
                 for participant in participants:
                     #print('Participant:', participant, file=sys.stderr)
-                    first_name, last_name, license_code, bib, uci_id, team_name = participant  
+                    first_name, last_name, license_code, bib, uci_id, team_name, preregistered, registration_timestamp, tag_checked, license_checked, paid, confirmed = participant
 
                     #generator.add_participant(event_section_id, wave_name, participant)
                     formatted_participant = {
@@ -178,7 +183,13 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
                       'team_name': team_name,
                       'wave_name': wave_name,
                       'category_code': category_code,
-                      'uci_id': uci_id
+                      'uci_id': uci_id,
+                      'preregistered': preregistered,
+                      'registration_timestamp': registration_timestamp,
+                      'tag_checked': tag_checked,
+                      'license_checked': license_checked,
+                      'paid': paid,
+                      'confirmed': confirmed,
                     }
                     #print(f"Adding participant: {formatted_participant}", file=sys.stderr)
                     for generator in generators:
@@ -205,6 +216,7 @@ def main():
     parser.add_argument('--name', type=str, help='Name of the competition.')
     parser.add_argument('--xlsx', action='store_true', help='Generate XLSX output')
     parser.add_argument('--html', action='store_true', help='Generate HTML output')
+    parser.add_argument('--audit', action='store_true', help='Generate audit')
     parser.add_argument("--crossmgr", required=False, help="The RaceDB host for downloading files.")
 
     args = parser.parse_args()
@@ -220,6 +232,9 @@ def main():
 
     if args.crossmgr:
         output_formats.append('cm')
+
+    if args.audit:
+        output_formats.append('audit')
 
     export_startlists(args.host, date=formatted_date, name=args.name, output_formats=output_formats, racedb_host=args.crossmgr)
 

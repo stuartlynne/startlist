@@ -5,6 +5,7 @@ from datetime import datetime
 
 class GenXLSX:
     def __init__(self, competition_name):
+        print('GenXLSX:', competition_name)
         self.competition_name = competition_name
         self.workbook = openpyxl.Workbook()
         self.current_sheet = self.workbook.active
