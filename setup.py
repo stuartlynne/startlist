@@ -22,8 +22,7 @@ with open("README.md", "rb") as f:
 setup(
     name = "startlist",
     packages = ["startlist",],
-    #install_requires = [ "psycopg2", "yattag", "openpyxl", ],
-    install_requires = [ "yattag", "openpyxl", ],
+    install_requires = [ "yattag", "openpyxl", "psycopg2", "autopage", "requests", "BeautifulSoup4", ],
     entry_points = {
         "console_scripts": ['startlist = startlist.startlist:main'],
         },
@@ -31,9 +30,9 @@ setup(
         'qlmux': ['static/*/*'],
         },
     version = version,
-    description = "RaceDb Proxy for Brother QL Label Printers and Impinj RFID readers",
+    description = "CLI to generate startlists and CrossMgr files from RaceDB server.",
     long_description = long_descr,
     author = "Stuart Lynne",
     author_email = "stuart.lynne@gmail.com",
-    url = "http://bitbucket.org/stuartlynne/qlmux_proxy",
+    url = "http://github.com/stuartlynne/startlist",
     )

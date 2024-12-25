@@ -1,11 +1,39 @@
 # startlist
 # Thu Sep 26 03:58:26 PM PDT 2024
 
+This project contains various Python CLI scripts to assist with managing 
+competitions and events in *RaceDB* and *CrossMgr*.
+
+## Overview
+### RaceDB Competition
+These scripts assume that a competition has been created in *RaceDB* for the
+specific date. The competition will have a unique name, and a date. 
+
+## Competition Workflow
+
+1. Create a competition in *RaceDB* for the specific date.
+2. Download pre-registration data from the Online registration system. E.g. CCN or BikeReg.
+3. Run the appropriate preregistration script to create two xlsx files, a license holder update file, and a registration file.
+4. Import the license holder update file into *RaceDB*.
+5. Import the registration file into *RaceDB*.
+6. Run the *startlist* script to generate an HTML start list for the competition and download the CrossMgr files.
+7. Sync the start list file to a static website for officials to access on their smartphones.
+
+## License Holder Update
+
+1. Download the license holder update file from the registration system.
+2. Run the *license_holder_update* script to create an xlsx file that can be imported into *RaceDB*.
+3. Import the xlsx file into *RaceDB*.
+
+## Start Lists and CrossMgr
+
 *startlist* is a Python script to generate an HTML interactive start list for 
-races created in *RaceDB* and download CrossMgr files. 
+races created in *RaceDB* and download CrossMgr files. The resulting HTML
+file can be hosted on a static website for officials to access on their
+smartphones.
 
 ## CrossMgr
-The script will download all of the CrossMgr files for a specific date and competition.
+The script will download all of the CrossMgr xlsx files for a specific date and competition.
 
 ## StartList
 This script is self-contained, all processing is done client side making it

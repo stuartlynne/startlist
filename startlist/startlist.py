@@ -2,6 +2,7 @@ import sys
 import argparse
 import psycopg2
 from datetime import datetime
+from .findcompetition import find_competition, cur_execute, log_debug
 from .genxlsx import GenXLSX
 from .genhtml import GenHTML
 from .gencm import GenCM
@@ -21,8 +22,6 @@ def remove_tzinfo(dt):
         return dt.replace(tzinfo=None)
     return dt
 
-def log_debug(message):
-    print(message, file=sys.stderr)
 
 def log_sql(query, params, debug=True):
     """Logs the fully expanded SQL query with parameters."""
@@ -30,11 +29,11 @@ def log_sql(query, params, debug=True):
     if debug:
             log_debug(f"Executing SQL: {expanded_query}")
 
-def cur_execute(msg, cur, query, params, debug=True):
-    """Executes a query with parameters and logs the expanded query."""
-    log_debug(msg)
-    log_sql(query, params, debug=debug)
-    cur.execute(query, params)
+#def cur_execute(msg, cur, query, params, debug=True):
+#    """Executes a query with parameters and logs the expanded query."""
+#    log_debug(msg)
+#    log_sql(query, params, debug=debug)
+#    cur.execute(query, params)
 
 full_competition_query = """
 SELECT 
@@ -60,36 +59,14 @@ WHERE
     c.%s = '%s';
         """
 
+
 def export_startlists(host='localhost', date=None, name=None, output_formats=None, racedb_host=None):
     generators = []
 
     debug = True
     try:
-        # Connect to PostgreSQL database
-        conn = psycopg2.connect(
-            dbname="racedb",
-            user="postgres",
-            password="5wHYUQ9qmttpq58EV4EG",
-            host=host,
-            port="5432"
-        )
-        cur = conn.cursor()
 
-        if name:
-            competition_query = "SELECT id, name, long_name FROM core_competition WHERE name = %s;"
-            cur_execute(f'Find competition by name {name}', cur, competition_query,  (name,), debug=False)
-        else:
-            competition_query = "SELECT id, name, long_name FROM core_competition WHERE start_date = %s;"
-            cur_execute(f'Find competition by date {date}', cur, competition_query, (date,), debug=True)
-        
-        competition = cur.fetchone()
-        if not competition:
-             print(f"No competition found for {name or date}.", file=sys.stderr)
-             return
-        competition_id, competition_name, competition_long_name = competition
-        print(f"Competition found: {competition}", file=sys.stderr)
-        print("Output formats:", output_formats, file=sys.stderr)
-
+        conn, cur, competition_id, competition_name, competition_long_name = find_competition(host, name, date) 
 
         if 'xlsx' in output_formats:
             generators.append(GenXLSX(competition_name))
