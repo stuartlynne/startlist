@@ -24,7 +24,13 @@ setup(
     packages = ["startlist",],
     install_requires = [ "yattag", "openpyxl", "psycopg2", "autopage", "requests", "BeautifulSoup4", ],
     entry_points = {
-        "console_scripts": ['startlist = startlist.startlist:main'],
+        "console_scripts": [
+            'startlist = startlist.startlist:main'
+            'competition = cli.competition:main'
+            'licenseholders = cli.licenseholders:main'
+            'numberset = cli.numberset:main'
+            'prereg = cli.prereg:main'
+            'template = cli.template:main'
         },
     package_data = {
         'qlmux': ['static/*/*'],
