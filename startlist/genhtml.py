@@ -52,7 +52,7 @@ class GenHTML:
         return self.clean_id(f"wti_{event_id}_{bib}")
          
 
-    def __init__(self, host, competition_name, competition_date):
+    def __init__(self, host, competition_name, competition_date, ranges,):
         self.competition_name = competition_name
         self.competition_date = competition_date
         self.doc, self.tag, self.text = Doc().tagtext()
@@ -140,7 +140,7 @@ class GenHTML:
             'waves': {}
         }
 
-    def add_wave(self, wave_name, start_offset, distance, laps, minutes, categories, ):
+    def add_wave(self, event_id, wave_id, wave_name, start_offset, distance, laps, minutes, categories, ):
         event_section_id = list(self.data.keys())[-1]  # Get the last added event
         if wave_name not in self.data[event_section_id]['waves']:
             self.data[event_section_id]['waves'][wave_name] = {
@@ -152,7 +152,7 @@ class GenHTML:
                 'participants': [],
             }
 
-    def add_participant(self, dummy, wave_name, participant_data):
+    def add_participant(self, event_id, wave_id, wave_name, participant_data):
         event_section_id = list(self.data.keys())[-1]  # Get the last added event
         if wave_name in self.data[event_section_id]['waves']:
             self.data[event_section_id]['waves'][wave_name]['participants'].append(participant_data)

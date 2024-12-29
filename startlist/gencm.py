@@ -18,16 +18,18 @@ class GenCM:
         self.events = []
 
     def add_event(self, event_id, event_name, event_start_time):
+        print(f"Adding event {event_id} {event_name} to competition", file=sys.stderr)
         self.events.append(event_id)
 
-    def add_wave(self, wave_name, start_offset, distance, laps, minutes, categories, ):
+    def add_wave(self, event_id, wave_id, wave_name, start_offset, distance, laps, minutes, categories, ):
         pass
 
-    def add_participant(self, dummy, wave_name, participant_data):
+    def add_participant(self, event_id, wave_id, wave_name, participant_data):
         pass
 
     def save(self, ):
         for i, event_id in enumerate(self.events, 1):
+            print(f"Downloading event {event_id}...", file=sys.stderr)
             url = urljoin(f"https://{self.racedb_host}/RaceDB/Competitions/CompetitionDashboard/{self.competition_id}/EventMassStartCrossMgr/", 
                           str(event_id))
             print('Download URL:', url, file=sys.stderr)
