@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
+# vim: shiftwidth=4 tabstop=4 expandtab
 
 import sys
 import os
+import re
 import subprocess
 import requests
 import io
 import json
 import gzip
-#import argparse
-import autopage, argparse
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
+import autopage
+from autopage import argparse
+
+
+from libs.autopageex import AutoPagerEx
 from libs.login import session_login
 from libs.upload import upload_file
 from libs.findsql import find_competition
@@ -100,17 +105,19 @@ def login_and_create(
     session = session_login(racedb, username, password)
 
     # 2
-    final_response = download_file(session, racedb, download_path, 
-            data = {
-                'export_as_template': 'on',
-                'remove_ftp_info': 'on',
-                'ok-submit': 'OK',
-                },)
+    if False:
+        final_response = download_file(session, racedb, download_path, 
+                data = {
+                    'export_as_template': 'on',
+                    'remove_ftp_info': 'on',
+                    'ok-submit': 'OK',
+                    },)
 
     # save response into BytesIO 
     # XXX read template_file if not None
+    template_file = os.path.basename(template_file)
     if template_file:
-        files = { "excel_file": open(template_file, 'rb'), }
+        files = { "json_file": open(template_file, 'rb'), }
     else:
         buffer = io.BytesIO(final_response.content)
         buffer.seek(0)
@@ -174,24 +181,25 @@ def main():
             description="Import RaceDB competition pre-registration xlsx file.", 
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog=epilog)
-    parser.add_argument('--host', type=str, default='http://localhost:8000/', help='RaceDB Server URL')
+    parser.add_argument('--host', type=str, default=None, help='RaceDB Server URL')
     parser.add_argument('--username', type=str, default=None, help='authentication username')
     parser.add_argument('--password', type=str, default=None, help='authentication password')
-    parser.add_argument('--template_date', type=str, help='Copy the competition from this date.')
+    parser.add_argument('--template_date', type=str, default=None, help='Copy the competition from this date.')
     parser.add_argument('--category_format', type=str, default=None, help='Copy the most recent competition with this category format.')
     parser.add_argument('--template_file', type=str, default=None, help='Specify a template file.')
     parser.add_argument('--start_date', type=str, default=None, help='Start date of the competition in YYYY-MM-DD format.')
     parser.add_argument('--new_name', type=str, default=None, help='Name of the competition.')
-    parser.add_argument('--replace', type=bool, default=False, help='Replace existing competition')
+    parser.add_argument('--replace', action='store_true', help='Replace existing competition')
     parser.add_argument('--stderr', "--debug", action='store_true', help='Enable stderr output.')
+    parser.add_argument('--stderrdup', "--debugdup", action='store_true', help='Enable stderr output.')
                 
 
     #parser.add_argument('--xlsx', type=str, default='', help='Pre-Registration Data XLSX file for upload')
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
     
           
-    racedb = args.host   # e.g. http://192.168.250.51:9080
+    base_url = args.host   # e.g. http://192.168.250.51:9080
     username = args.username   # e.g. super
     password = args.password   # e.g. super
     template_date = args.template_date
@@ -199,6 +207,18 @@ def main():
     template_file = args.template_file
     new_name = args.new_name
     start_date = args.start_date
+
+    match = re.search(r'\b(\d{4})(\d{2})(\d{2})\b', start_date)
+    if match:
+        # Extract year, month, and day groups
+        year, month, day = match.groups()
+        # Convert to YYYY-MM-DD format
+        start_date = f"{year}-{month}-{day}"
+    match = re.search(r'\b(\d{4})-(\d{2})-(\d{2})\b', start_date)
+    if not match:
+        print(f"Invalid date format: {start_date}")
+        exit(1)
+
     replace = args.replace
     #file_path = args.xlsx  # e.g. /path/to/file.xlsx
 
@@ -207,49 +227,53 @@ def main():
     # 3. Update JSON with new date and name
     # 4. Compress JSON and Upload to create a new competition, possibly with replace: On
 
-    dbHost = racedb.removeprefix("https://").removeprefix("http://").split(":")[0]
+    if base_url is None:
+        base_url = os.environ.get("RACEDB_URL", "http://localhost:8000")
+    dbHost = base_url.removeprefix("https://").removeprefix("http://").split(":")[0]
     print(f"DBHost: {dbHost} new_name: {new_name} start_date: {start_date} category_format: {category_format} {template_date} {template_file} {replace}", file=sys.stderr)
 
-    os.environ['LESS'] += f" -F --quit-if-one-screen"
-    stderr_context = sys.stderr if args.stderr else open('/dev/null', 'w') 
-    with stderr_context as sys.stderr, autopage.AutoPager(line_buffering=autopage.line_buffer_from_input()) as sys.stdout:
+    with AutoPagerEx(stderr=args.stderr, stderrdup=args.stderrdup, line_buffering=autopage.line_buffer_from_input()) as (sys.stdout, sys.stderr):
         competition_id = None
         # check 
         if not replace:
             try:
                 conn, cur, competition_id, competition_name, competition_long_name, competition_start_date, number_set_id = find_competition(dbHost, None, date=start_date)
-            except TypeError as e:
-                print(f"Competition not found: {start_date}")
+            except (TypeError, ValueError) as e:
+                print(f"Competition not found: {name} {template_date} {template_format}")
+                exit(1)
 
             if competition_id:
                 print(f"Competition: {competition_start_date} {competition_name} already exists.")
                 exit(0)
 
         if not template_file:
-            conn, cur, competition_id, competition_name, competition_long_name, competition_start_date, number_set_id = find_competition(dbHost, None, 
-                    date=template_date, category_format=category_format)
+            try:
+                conn, cur, template_id, competition_name, competition_long_name, competition_start_date, number_set_id = find_competition(dbHost, None, 
+                        date=template_date, category_format=category_format)
+            except (TypeError, ValueError) as e:
+                print(f"Competition not found: {name} {template_date} {template_format}")
+                exit(1)
+            login_and_create(
+                racedb=base_url,
+                username=username,
+                password=password,
+                start_date=start_date,
+                new_name=new_name,
+                competition_id=template_id,
+                template_file=template_file,
+                replace=args.replace,
+            )
         else:
-            competition_id = None  
-
-        if not competition_id:
-            print("Competition: {template_date} not found.")
-            exit(1)
-
-        print(f"Competition ID: {competition_id} Name: {competition_name} Long Name: {competition_long_name} Date: {start_date}")
-
-        #filename = f"{competition_name}-{date}.gz".replace(" ", "_")
-
-
-        login_and_create(
-            racedb=racedb,
-            username=username,
-            password=password,
-            start_date=start_date,
-            new_name=new_name,
-            competition_id=competition_id,
-            template_file=template_file,
-            replace=args.replace,
-        )
+            login_and_create(
+                racedb=base_url,
+                username=username,
+                password=password,
+                start_date=start_date,
+                new_name=new_name,
+                competition_id=None,
+                template_file=template_file,
+                replace=args.replace,
+            )
 
 if __name__ == "__main__":
     main()

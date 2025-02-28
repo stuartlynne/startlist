@@ -167,11 +167,3 @@ N.b. The actual makefile is slightly more complex, it determines the S3 path
 based on the file hierarchy.
 
 
-
-
-
-
-
-
-
-

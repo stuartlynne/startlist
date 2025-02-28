@@ -8,6 +8,8 @@ def session_login(base_url, username, password):
 
     print(f"=== Logging in to {base_url} as {username}", file=sys.stdout)
 
+    if not base_url:
+        base_url = os.environ.get("RACEDB_URL")
     if not username:
         username = os.environ.get("RACEDB_USERNAME")
     if not password: 

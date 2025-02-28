@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
+# vim: shiftwidth=4 tabstop=4 expandtab
 
 import sys
 import os
-#import argparse
-import autopage, argparse
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
+import autopage
+from autopage import argparse
+
+from libs.autopageex import AutoPagerEx
 from libs.login import session_login
 from libs.upload import upload_file
 from libs.findsql import find_competition
@@ -70,22 +73,23 @@ def main():
             description="RaceDB update license holders from xlsx.", 
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog=epilog)
-    parser.add_argument('--host', type=str, default='localhost', help='database host')
+    parser.add_argument('--host', type=str, default=None, help='database host')
     parser.add_argument('--username', type=str, default=None, help='authentication username')
     parser.add_argument('--password', type=str, default=None, help='authentication password')
     parser.add_argument('--stderr', "--debug", action='store_true', help='Enable stderr output.')
     parser.add_argument('--xlsx', type=str, default='', help='License Holder XLSX file for upload')
+    parser.add_argument('--stderrdup', "--debugdup", action='store_true', help='Enable stderr output.')
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
     
     base_url = args.host        # e.g. http://192.168.250.51:9080
     username = args.username    # e.g. super
     password = args.password    # e.g. super
     file_path = args.xlsx       # e.g. /path/to/file.xlsx
 
-    os.environ['LESS'] += f" -F --quit-if-one-screen"
-    stderr_context = sys.stderr if args.stderr else open('/dev/null', 'w') 
-    with stderr_context as sys.stderr, autopage.AutoPager(line_buffering=autopage.line_buffer_from_input()) as sys.stdout:
+    if base_url is None:
+        base_url = os.environ.get("RACEDB_URL", "http://localhost:8000")
+    with AutoPagerEx(stderr=args.stderr, stderrdup=args.stderrdup, line_buffering=autopage.line_buffer_from_input()) as (sys.stdout, sys.stderr):
         login_and_upload(
             base_url=base_url,
             username=username,

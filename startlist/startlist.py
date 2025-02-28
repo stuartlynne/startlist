@@ -1,11 +1,15 @@
 import sys
 import os
-import argparse
 import psycopg2
 from psycopg2.extras import DictCursor
 import traceback
 from datetime import datetime
-import autopage, argparse
+
+from autopage import argparse
+import autopage
+
+from libs.autopageex import AutoPagerEx
+
 from libs.findsql import find_competition, cur_execute, log_debug
 from startlist.genxlsx import GenXLSX
 from startlist.genhtml import GenHTML
@@ -276,9 +280,10 @@ def main():
     parser.add_argument('--info', action='store_true', help='Summary of Events/Waves/Categories')
     parser.add_argument('--bibs', action='store_true', help='Summary of Number Set Usage (aka bibs)')
     parser.add_argument('--stderr', "--debug", action='store_true', help='Enable stderr output.')
+    parser.add_argument("--stderrdup", action='store_true', help='Send stderr to stdout.')
     parser.add_argument("--crossmgr", "--cm", required=False, help="The RaceDB host for downloading files.")
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
 
     formatted_date = format_date(args.date) if args.date else None
 
@@ -296,9 +301,7 @@ def main():
     if args.bibs:
         output_formats.append('bibs')
 
-    os.environ['LESS'] += f" -F --quit-if-one-screen"
-    stderr_context = sys.stderr if args.stderr else open('/dev/null', 'w') 
-    with stderr_context as sys.stderr, autopage.AutoPager(line_buffering=autopage.line_buffer_from_input()) as sys.stdout:
+    with AutoPagerEx(stderr=args.stderr, stderrdup=args.stderrdup, line_buffering=autopage.line_buffer_from_input()) as (sys.stdout, sys.stderr):
         export_startlists(args.host, date=formatted_date, name=args.name, output_formats=output_formats, racedb_host=args.crossmgr)
 
 if __name__ == "__main__":
