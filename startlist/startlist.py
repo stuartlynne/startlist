@@ -17,6 +17,7 @@ from startlist.gencm import GenCM
 from startlist.genaudit import GenAudit
 from startlist.genbibs import GenBibs
 from startlist.geninfo import GenInfo
+from startlist.genpdf import GenPDF
 
 __version__ = "0.2.0"
 
@@ -70,7 +71,7 @@ WHERE
         """
 
 
-def export_startlists(host='localhost', date=None, name=None, output_formats=None, racedb_host=None):
+def export_startlists(host='localhost', date=None, name=None, output_formats=None, racedb_host=None, landscape=False):
     generators = []
 
     print('Output formats:', output_formats, file=sys.stderr)
@@ -81,7 +82,7 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
         conn, cur, competition_id, competition_name, competition_long_name, competition_start_date, number_set_id = find_competition(host, name, date) 
         print(f"Competition found: {competition_id, competition_name, competition_long_name, competition_start_date, number_set_id}", file=sys.stderr)
 
-        if set(["html", "info", "bibs"]) & set(output_formats):
+        if set(["html", "info", "bibs", "pdf", ]) & set(output_formats):
             # Query to find the bib ranges for each category in the wave
             # core_categorynumbers - range_str
             # core_categorynumbers_categories - categorynumbers_id, category_id
@@ -108,8 +109,6 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
             #print(f"bibs {bibs}", file=sys.stderr)
 
 
-        if 'xlsx' in output_formats:
-            generators.append(GenXLSX(competition_name))
         if 'html' in output_formats:
             generators.append(GenHTML(host, competition_name, date, ranges, ))
         if 'cm' in output_formats:
@@ -120,12 +119,16 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
             generators.append(GenBibs(racedb_host, date, competition_id, competition_long_name, ranges, bibs, ))
         if 'info' in output_formats:
             generators.append(GenInfo(racedb_host, date, competition_id, competition_long_name, ranges, bibs, ))
+        if 'pdf' in output_formats:
+            generators.append(GenPDF(date, competition_name, competition_long_name, landscape=landscape, ))
+        if 'xlsx' in output_formats:
+            generators.append(GenXLSX(date, competition_name, competition_long_name))
         if generators == []:
             print(f"Invalid output format: {output_formats}", file=sys.stderr)
             exit(1)
 
 
-        if set(["xlsx", "html", "audit", "info", "cm", ]) & set(output_formats):
+        if set(["pdf", "xlsx", "html", "audit", "info", "cm", ]) & set(output_formats):
 
             # Query to find the competition events and waves
             if name:
@@ -172,8 +175,8 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
                 """, (wave_id,), debug=debug)
                 categories = cur.fetchall()
                 for generator in generators:
-                    generator.add_wave(event_id, wave_id, wave_name, start_offset, distance, laps, minutes, categories)
-                #log_debug(f"Categories found for wave {wave_name}: {categories}")
+                    generator.add_wave(last_event_id, wave_id, wave_name, start_offset, distance, laps, minutes, categories)
+                log_debug(f"Categories found for wave {wave_name}: {categories}")
 
 
 
@@ -220,6 +223,7 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
                           'registration_timestamp': registration_timestamp,
                           'tag_checked': tag_checked,
                           'license_checked': license_checked,
+                          'category_gender': category_gender,
                           'paid': paid,
                           'confirmed': confirmed,
                         }
@@ -276,9 +280,11 @@ def main():
     parser.add_argument('--name', type=str, help='Name of the competition.')
     parser.add_argument('--xlsx', action='store_true', help='Generate XLSX Start List')
     parser.add_argument('--html', action='store_true', help='Generate HTML Start List')
+    parser.add_argument('--pdf', action='store_true', help='Generate PDF Start List')
     parser.add_argument('--audit', action='store_true', help='Generate audit xlsx, pre-reg vs day-of registration.')
     parser.add_argument('--info', action='store_true', help='Summary of Events/Waves/Categories')
     parser.add_argument('--bibs', action='store_true', help='Summary of Number Set Usage (aka bibs)')
+    parser.add_argument('--landscape', action='store_true', help='Generate landscape PDF.')
     parser.add_argument('--stderr', "--debug", action='store_true', help='Enable stderr output.')
     parser.add_argument("--stderrdup", action='store_true', help='Send stderr to stdout.')
     parser.add_argument("--crossmgr", "--cm", required=False, help="The RaceDB host for downloading files.")
@@ -300,9 +306,14 @@ def main():
         output_formats.append('info')
     if args.bibs:
         output_formats.append('bibs')
+    if args.pdf:
+        output_formats.append('pdf')
+
+    landscape = args.landscape
 
     with AutoPagerEx(stderr=args.stderr, stderrdup=args.stderrdup, line_buffering=autopage.line_buffer_from_input()) as (sys.stdout, sys.stderr):
-        export_startlists(args.host, date=formatted_date, name=args.name, output_formats=output_formats, racedb_host=args.crossmgr)
+        export_startlists(args.host, date=formatted_date, name=args.name, output_formats=output_formats, 
+                          racedb_host=args.crossmgr, landscape=landscape)
 
 if __name__ == "__main__":
     main()
