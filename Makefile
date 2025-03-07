@@ -8,7 +8,8 @@ HTML = $(DATES:.date=.html)
 #%.html: %.date
 #	python3 startlist-runner.py --crossmgr racedb.wimsey.online --html --date racedb.wg --date $(<:.date=) 
 %.html: %.date
-	python3 startlist.py --html --audit --host racedb.wg --date $(<:.date=) 
+	python3 startlist.py --html --audit --xlsx --crossmgr https://racedb.wimsey.pro --host whiskey --date $(<:.date=) 
+	#python3 startlist.py --html --audit --host racedb.wg --date $(<:.date=) 
 
 
 all:

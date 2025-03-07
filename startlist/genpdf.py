@@ -173,7 +173,7 @@ class GenPDF:
             event_start_time = event["event_start_time"].strftime("%H%M")  # Format HHMM
 
             # Generate filename: {date}-{competition_name}-{starttime}.pdf
-            filename = f"{self.date.replace('-', '')}-{self.competition_name.replace(' ', '_')}-{event_start_time}.pdf"
+            filename = f"{self.date.replace('-', '')}-{self.competition_name.replace(' ', '_')}-{event_start_time}-startlist.pdf"
 
             # Generate a PDF for this event
             print(f"Generating PDF: {filename}")
