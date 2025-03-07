@@ -10,7 +10,7 @@ from libs.gpdf import generate_pdf
 
 class GenPDF:
     def __init__(self, date, competition_name, competition_long_name, landscape=False):
-        print('GenPDF:', date, competition_name, competition_long_name, file=sys.stderr)
+        print('GenPDF:', date, competition_name, competition_long_name, file=sys.stdout)
         self.date = date
         self.competition_name = competition_name
         self.competition_long_name = competition_long_name
@@ -173,12 +173,12 @@ class GenPDF:
             event_start_time = event["event_start_time"].strftime("%H%M")  # Format HHMM
 
             # Generate filename: {date}-{competition_name}-{starttime}.pdf
-            filename = f"{self.date.replace('-', '')}-{self.competition_name.replace(' ', '_')}-{event_start_time}-startlist.pdf"
+            filename = f"{self.date}-{self.competition_name.replace(' ', '_')}-{event_start_time}-startlist.pdf"
 
             # Generate a PDF for this event
             print(f"Generating PDF: {filename}")
             self.generate_pdf(event_id, filename, self.landscape)
-        
+
         return "PDFs generated for each event."
 
 
