@@ -59,7 +59,7 @@ def page1_table(c, width, height, df, landScape=False):
         wave_paragraph = Paragraph(wave, details_style)
         categories_paragraph = Paragraph(formatted_categories, details_style)
         start_offset = round(wave_df['Start Offset'].iloc[0]//60)
-        print(f"Start Offset: {start_offset} AAAAAAAA", file=sys.stdout)
+        print(f"Start Offset: {start_offset} AAAAAAAA", file=sys.stderr)
         #start_offset = round(wave_df['Start Offset']//60)
         #print(f"Start Offset: {start_offset} BBBBBBBB", file=sys.stdout)
 

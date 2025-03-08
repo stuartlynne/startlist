@@ -30,17 +30,18 @@ class GenPDF:
 
     def add_wave(self, event_id, wave_id, wave_name, start_offset, distance, laps, minutes, categories):
         """ Add a wave to an event. """
-        print(f"GenPDF: Adding wave: {event_id} {wave_id} {wave_name}, Start Offset: {start_offset} Distance: {distance} Laps: {laps} Categories: {categories}", file=sys.stderr)
+        print(f"GenPDF: Adding wave: {event_id} {wave_id} {wave_name}, Start Offset: {start_offset} Distance: {distance} Laps: {laps} Categories: {categories}", 
+              file=sys.stderr)
 
         # **Store category list (prevent overwriting by using a list instead of a dictionary)**
         formatted_categories = []
         for cat in categories:
-            print(f"Category: {cat}")
+            print(f"Category: {cat}", file=sys.stderr)
             #cat_name = f"{cat[1]} ({'Men' if cat[2] == 0 else 'Women'})"
             cat_name = f"{cat[1]} ({['Men', 'Women', 'Open'][cat[2]]})"
             formatted_categories.append((cat[0], cat_name))
 
-        print(f"Formatted Categories[{event_id},{wave_id}] {formatted_categories}")
+        print(f"Formatted Categories[{event_id},{wave_id}] {formatted_categories}", file=sys.stderr)
         #formatted_categories = [(cat[0], f"{cat[1]} ({'Men' if cat[2] == 0 else 'Women'})") for cat in categories]
         #print(f"Formatted Categories[{event_id},{wave_id}] {formatted_categories}")
 
@@ -56,21 +57,21 @@ class GenPDF:
 
     def add_participant(self, event_id, wave_id, wave_name, participant_data):
         """ Add a participant to a wave. """
-        print(f"GenPDF: Adding participant: {event_id} {wave_id} participant_data: {participant_data}", file=sys.stdout)
+        print(f"GenPDF: Adding participant: {event_id} {wave_id} participant_data: {participant_data}", file=sys.stderr)
         category_code = participant_data.get('category_code', 'Unknown')
         category_gender = participant_data.get('category_gender', 0)
         category_name = f"{category_code} ({['Men', 'Women', 'Open'][category_gender]})"
         participant_data['category_code'] = category_name
-        print(f"adding participant to wave {wave_id} with category {category_name}")
+        print(f"adding participant to wave {wave_id} with category {category_name}", file=sys.stderr)
         self.events[self.event_id]['waves'][wave_id]['participants'].append(participant_data)
 
     def to_dataframe(self):
         """ Convert event, wave, and participant data into a Pandas DataFrame. """
         data = []
-        print("\n=== DEBUG: Processing to_dataframe() ===\n")
+        print("\n=== DEBUG: Processing to_dataframe() ===\n", file=sys.stderr)
 
         for event_id, event in self.events.items():
-            print(f"Processing Event ID: {event_id}, Name: {event.get('competition_long_name', 'Unknown')}")
+            print(f"Processing Event ID: {event_id}, Name: {event.get('competition_long_name', 'Unknown')}", file=sys.stderr)
             
             for wave_id, wave in event["waves"].items():
                 # **Create a category mapping for this wave**
@@ -79,7 +80,7 @@ class GenPDF:
                 # **Generate wave summary categories list**
                 wave_categories = ", ".join(formatted for _, formatted in wave["categories"])
 
-                print(f"  Wave ID: {wave_id}, Name: {wave['wave_name']}, Categories: {wave_categories}")
+                print(f"  Wave ID: {wave_id}, Name: {wave['wave_name']}, Categories: {wave_categories}", file=sys.stderr)
 
                 # **Sort participants by Bib Number (Handle missing values as "N/A")**
                 sorted_participants = sorted(
@@ -91,7 +92,7 @@ class GenPDF:
                     # **Find correct category for participant (Category + Gender)**
                     formatted_category = category_map.get(participant["category_code"], participant["category_code"])
 
-                    print(f"    Participant: {participant.get('first_name', 'Unknown')} {participant.get('last_name', 'Unknown')}, Bib: {participant.get('bib', 'N/A')}, Category: {formatted_category}")
+                    print(f"    Participant: {participant.get('first_name', 'Unknown')} {participant.get('last_name', 'Unknown')}, Bib: {participant.get('bib', 'N/A')}, Category: {formatted_category}", file=sys.stderr)
 
                     data.append([
                         event_id,  # **Ensure event ID is included for proper grouping**
@@ -115,9 +116,9 @@ class GenPDF:
                    "First Name", "Last Name", "Team", "Category", "UCI ID", "License Checked", "Confirmed", ]
         df = pd.DataFrame(data, columns=columns)
 
-        print(f"\n=== DEBUG: DataFrame Created with {len(df)} rows ===\n")
-        print(df.groupby('Event ID')['Wave'].nunique())  # Show number of waves per event
-        print("\n=== END DEBUG ===\n")
+        print(f"\n=== DEBUG: DataFrame Created with {len(df)} rows ===\n", file=sys.stderr)
+        print(df.groupby('Event ID')['Wave'].nunique(), file=sys.stderr)  # Show number of waves per event
+        print("\n=== END DEBUG ===\n", file=sys.stderr)
 
         return df
 
@@ -176,7 +177,7 @@ class GenPDF:
             filename = f"{self.date}-{self.competition_name.replace(' ', '_')}-{event_start_time}-startlist.pdf"
 
             # Generate a PDF for this event
-            print(f"Generating PDF: {filename}")
+            print(f"Generating PDF: {filename}", file=sys.stderr)
             self.generate_pdf(event_id, filename, self.landscape)
 
         return "PDFs generated for each event."
