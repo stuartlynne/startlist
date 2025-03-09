@@ -57,12 +57,13 @@ class GenXLSX:
     def save(self):
         """ Saves each event as a separate XLSX file with column widths. """
         for event_id, event in self.events.items():
-            event_name = event["event_name"].replace(" ", "_")
-            filename = f"{self.date}-{self.competition_name}-{event_name}.xlsx"
+            event_name = event["event_name"].replace(" ", "_").replace(':','').replace('_AM','').replace('_PM','')
+            filename = f"{self.date}-{self.competition_name.replace(' ','_')}-{event_name}-startlist.xlsx"
             writer = pd.ExcelWriter(filename, engine='xlsxwriter')
             header_format = writer.book.add_format({'text_wrap': True, 'bold': True, 'font_size': 12})
             team_format = writer.book.add_format({'text_wrap': True, 'font_size': 12})
             center_format = writer.book.add_format({'align': 'center', 'valign': 'vcenter', 'font_size': 12})
+            print(f"GenPDF.save: filename: {filename}", file=sys.stderr)
             
             for wave_id, wave in event["waves"].items():
                 print(f"Wave {wave['wave_name']} has {len(wave['participants'])} participants", file=sys.stderr)
