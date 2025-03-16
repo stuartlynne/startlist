@@ -164,7 +164,7 @@ class GenHTML:
             self.left.generate_left()
             self.right.generate_right()
 
-    def save(self):
+    def save(self, category_bib_ranges=None):
         self.generate_html()
         html_output = indent(self.doc.getvalue())
         #output_filename = f'startlists_{self.competition_name.replace(" ", "_")}.html'

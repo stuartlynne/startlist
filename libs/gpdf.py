@@ -9,17 +9,19 @@ from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import Paragraph
 
-def page1_table(c, width, height, df, landScape=False):
+def page1_table(c, width, height, df, landScape=False, category_bib_ranges=None ):
     styles = [
+        # **Header Row**
         ("ALIGN", (0, 0), (0, 0), "LEFT"),
         ("ALIGN", (1, 0), (1, 0), "CENTER"),
-        ("ALIGN", (2, 0), (2, 0), "CENTER"),
+        ("ALIGN", (2, 0), (2, 0), "LEFT"),
         ("ALIGN", (3, 0), (3, 0), "LEFT"),
         ("ALIGN", (4, 0), (4, 0), "RIGHT"),
 
+        # **Data Rows**
         ("ALIGN", (0, 1), (0, -1), "RIGHT"),
         ("ALIGN", (1, 1), (1, -1), "CENTER"),
-        ("ALIGN", (2, 1), (2, -1), "CENTER"),
+        ("ALIGN", (2, 1), (2, -1), "LEFT"),
         ("ALIGN", (3, 1), (3, -1), "LEFT"),
         ("ALIGN", (4, 1), (4, -1), "RIGHT"),
 
@@ -45,10 +47,19 @@ def page1_table(c, width, height, df, landScape=False):
         # **Extract formatted categories (already includes gender)**
         category_counts = wave_df.groupby("Category").size().reset_index(name="Starters")
         formatted_categories = wave_df["Categories"].iloc[0]  
-        formatted_categories = ",".join(f"{row['Category']} {row['Starters']}" for _, row in category_counts.iterrows())
+        print(f"Formatted Categories: {formatted_categories}", file=sys.stderr)
+        #formatted_categories = ",".join(f"{row['Category']} {row['Starters']} [{category_bib_ranges.get(row['Category'], '')}]" for _, row in category_counts.iterrows())
+        formatted_categories = ",\n".join(f"{row['Category']} {category_bib_ranges.get(row['Category'], '')}" for _, row in category_counts.iterrows())
+        category_starters = "+".join(f"{row['Starters']}" for _, row in category_counts.iterrows())
+        print(f"Formatted Categories: {formatted_categories}", file=sys.stderr)
+        print(f"Category Starters: {category_starters}", file=sys.stderr)
+        print(f"Number of Categories: {len(category_counts)}", file=sys.stderr)
 
-        wave_starters = len(wave_df)
-        total_starters += wave_starters
+        wave_starters = f"{len(wave_df)}"
+        if len(category_counts) > 1:
+            wave_starters += f"\n{category_starters}"
+
+        total_starters += len(wave_df)
 
         # **Use HTML `<br/>` for line breaks + `<b>` for bold, and add `leading=22` for extra spacing**
         details_style = ParagraphStyle(name="BoldDetails", fontSize=14, leading=14)  # **Increase line spacing**
@@ -71,7 +82,7 @@ def page1_table(c, width, height, df, landScape=False):
             wave_starters  # Number of starters
         ])
 
-    colWidths = [50, 80, 100, 320, 80] if landScape else [50, 80, 100, 200, 70] 
+    colWidths = [50, 80, 100, 320, 80] if landScape else [50, 80, 70, 240, 70] 
     table = Table(table_data, colWidths=colWidths)  # **Wider column for spacing**
     styles.append(("ROWHEIGHTS", (0, 1), (-1, -1), [100] * (len(table_data) - 1)))
     table.setStyle(TableStyle(styles))
@@ -83,15 +94,16 @@ def page1_table(c, width, height, df, landScape=False):
 
     return total_starters
 
-def generate_pdf(self, event_id, pdf_filename, landScape=False):
+def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ranges=None):
     """ Generates a PDF report formatted like Thunderbird PDF. """
+    print("Category Bib Ranges:", category_bib_ranges, file=sys.stderr)
     # Filter data only for the selected event_id
     event = self.events.get(event_id)
     if not event:
         print(f"Error: Event {event_id} not found.", file=sys.stderr)
         return
 
-    df = self.to_dataframe()  # Convert to DataFrame
+    df = self.to_dataframe(category_bib_ranges=category_bib_ranges)  # Convert to DataFrame
 
     # **Ensure "Event ID" exists before filtering**
     if "Event ID" not in df.columns:
@@ -151,7 +163,7 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False):
     print('Total Starters:', total_starters, file=sys.stderr)
 
     # **Wave Summary Table (Formatted)**
-    total_starts = page1_table(c, width, height, df)
+    total_starts = page1_table(c, width, height, df, landScape=landScape, category_bib_ranges=category_bib_ranges )
     print('Total Starters:', total_starters, file=sys.stderr)
     c.setFont("Helvetica", 20)
     c.drawString(50, height - 180, f"Total Starters: {total_starts}")

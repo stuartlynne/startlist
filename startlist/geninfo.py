@@ -47,7 +47,7 @@ class GenInfo:
         self.waves[wave_id]['participants'] += 1
         pass
 
-    def save(self, ):
+    def save(self, category_bib_ranges=None):
         print("Events and Waves:")
         #def print_bib_data(category, numbers, total, inuse, lost, available, warning):
         #    print("%-20s | %-20s | %5s | %5s | %5s | %5s | %s" % (category, numbers, total, inuse, lost, available, warning))

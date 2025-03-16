@@ -27,7 +27,7 @@ class GenCM:
     def add_participant(self, event_id, wave_id, wave_name, participant_data):
         pass
 
-    def save(self, ):
+    def save(self, category_bib_ranges=None):
         for i, event_id in enumerate(self.events, 1):
             print(f"Downloading event {event_id}...", file=sys.stderr)
             url = urljoin(f"https://{self.racedb_host}/RaceDB/Competitions/CompetitionDashboard/{self.competition_id}/EventMassStartCrossMgr/", 

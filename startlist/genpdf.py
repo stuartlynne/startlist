@@ -65,7 +65,7 @@ class GenPDF:
         print(f"adding participant to wave {wave_id} with category {category_name}", file=sys.stderr)
         self.events[self.event_id]['waves'][wave_id]['participants'].append(participant_data)
 
-    def to_dataframe(self):
+    def to_dataframe(self, category_bib_ranges=None):
         """ Convert event, wave, and participant data into a Pandas DataFrame. """
         data = []
         print("\n=== DEBUG: Processing to_dataframe() ===\n", file=sys.stderr)
@@ -74,6 +74,10 @@ class GenPDF:
             print(f"Processing Event ID: {event_id}, Name: {event.get('competition_long_name', 'Unknown')}", file=sys.stderr)
             
             for wave_id, wave in event["waves"].items():
+
+                print(f"  Processing Wave ID: {wave_id}, Name: {wave['wave_name']}", file=sys.stderr)
+                print(f"  Categories: {wave['categories']}", file=sys.stderr)
+
                 # **Create a category mapping for this wave**
                 category_map = {cat_code: formatted for cat_code, formatted in wave["categories"]}
 
@@ -166,7 +170,7 @@ class GenPDF:
         c.drawString(doc_width - 150, footer_y, f"Page {page_num} of {total_pages}")
 
 
-    def save(self):
+    def save(self, category_bib_ranges=None):
         """ Saves each event as a separate PDF file. """
         for event_id, event in self.events.items():
             # Extract event details
@@ -178,7 +182,7 @@ class GenPDF:
 
             # Generate a PDF for this event
             print(f"Generating PDF: {filename}", file=sys.stderr)
-            self.generate_pdf(event_id, filename, self.landscape)
+            self.generate_pdf(event_id, filename, landScape=self.landscape, category_bib_ranges=category_bib_ranges)
 
         return "PDFs generated for each event."
 

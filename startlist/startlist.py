@@ -9,6 +9,7 @@ from autopage import argparse
 import autopage
 
 from libs.autopageex import AutoPagerEx
+from libs.getranges import get_ranges
 
 from libs.findsql import find_competition, cur_execute, log_debug
 from startlist.genxlsx import GenXLSX
@@ -70,7 +71,6 @@ WHERE
     c.%s = '%s';
         """
 
-
 def export_startlists(host='localhost', date=None, name=None, output_formats=None, racedb_host=None, landscape=False):
     generators = []
 
@@ -127,6 +127,8 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
             print(f"Invalid output format: {output_formats}", file=sys.stderr)
             exit(1)
 
+        # Dictionary to accumulate bib numbers per category
+        category_bibs = {}
 
         if set(["pdf", "xlsx", "html", "audit", "info", "cm", ]) & set(output_formats):
 
@@ -210,6 +212,12 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
                         #print('Participant:', participant, file=sys.stderr)
                         first_name, last_name, license_code, bib, uci_id, team_name, preregistered, registration_timestamp, tag_checked, license_checked, paid, confirmed = participant
 
+                        cat_name = f"{category_code} ({['Men', 'Women', 'Open'][category_gender]})"
+
+                        if cat_name not in category_bibs:
+                            category_bibs[cat_name] = []
+                        category_bibs[cat_name].append(bib)
+
                         #generator.add_participant(event_section_id, wave_name, participant)
                         formatted_participant = {
                           'bib': bib,
@@ -231,10 +239,19 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
                         for generator in generators:
                             generator.add_participant(None, wave_id, wave_name, formatted_participant)
 
+
+        category_bib_ranges = {}
+        # Convert bibs per category into summarized ranges
+        for category, bibs in category_bibs.items():
+            category_bib_ranges[category] = get_ranges(list(bibs))
+
+        #print("Category Bib Ranges:", category_bib_ranges, file=sys.stderr)
+
+
         # Save the generated file
         print(f"{len(generators)} generators: {generators}", file=sys.stderr)
         for generator in generators:
-            output_filename = generator.save()
+            output_filename = generator.save(category_bib_ranges=category_bib_ranges)
         #print(f"File generated: {output_filename}", file=sys.stderr)
 
     except psycopg2.DatabaseError as error:

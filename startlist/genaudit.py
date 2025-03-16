@@ -99,7 +99,7 @@ class GenAudit:
         self.participants.append(participant_data)
         pass
 
-    def save(self, ):
+    def save(self, category_bib_ranges=None):
         #fieldnames = ['Last Name,First Name,Bib,Category,PreReg,tag,lic,paid']
         #dictnames = ['last_name', 'first_name', 'bib', 'category_code', 'preregistered', 'tag_checked', 
         #        'license_checked', 'paid']

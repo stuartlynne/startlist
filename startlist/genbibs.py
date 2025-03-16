@@ -73,7 +73,7 @@ class GenBibs:
     def add_participant(self, event_id, wave_id, wave_name, participant, ):
         pass
 
-    def save(self, ):
+    def save(self, category_bib_ranges=None):
 
         #print('Ranges:', self.ranges, file=sys.stderr)
         # Process the data

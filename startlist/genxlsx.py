@@ -54,7 +54,7 @@ class GenXLSX:
         }
         self.events[self.event_id]['waves'][wave_id]['participants'].append(mapped_participant)
 
-    def save(self):
+    def save(self, category_bib_ranges=None):
         """ Saves each event as a separate XLSX file with column widths. """
         for event_id, event in self.events.items():
             event_name = event["event_name"].replace(" ", "_")
