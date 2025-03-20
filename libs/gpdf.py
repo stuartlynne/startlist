@@ -94,6 +94,10 @@ def page1_table(c, width, height, df, landScape=False, category_bib_ranges=None 
 
     return total_starters
 
+def truncate_text(text, max_length):
+    """Truncate text to fit within max_length, adding '...' if necessary."""
+    return text if len(text) <= max_length else text[:max_length-3] + "..."
+
 def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ranges=None):
     """ Generates a PDF report formatted like Thunderbird PDF. """
     print("Category Bib Ranges:", category_bib_ranges, file=sys.stderr)
@@ -218,6 +222,7 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
             team = row.get("Team", "")
             if not team:
                 team = ""
+            team = truncate_text(team, 28)
             print('Team:', team, file=sys.stderr)
             table_data.append( [ row["Bib"], name, team, row["Category"], row["UCI ID"], lc])
             index += 1
@@ -244,6 +249,7 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
 
             table_data = [["Bib", "Name", "Team", "Category", "UCI ID"]]
             styles = init_styles.copy()
+            # XXX Teams column is not getting truncated, a long team name gets printed overtop the Category column
             for i, (_, row) in enumerate(remaining_participants.iloc[:remaining_page_rows].iterrows()):
                 if i % 2 == 1:
                     styles.append(("BACKGROUND", (0, i), (-1, i), colors.whitesmoke))
