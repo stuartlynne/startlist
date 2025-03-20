@@ -20,7 +20,7 @@ from startlist.genbibs import GenBibs
 from startlist.geninfo import GenInfo
 from startlist.genpdf import GenPDF
 
-__version__ = "0.5.0"
+__version__ = "0.5.1"
 
 
 def format_date(input_date):
