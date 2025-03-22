@@ -20,7 +20,7 @@ from startlist.genbibs import GenBibs
 from startlist.geninfo import GenInfo
 from startlist.genpdf import GenPDF
 
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 
 
 def format_date(input_date):
@@ -243,7 +243,11 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
         category_bib_ranges = {}
         # Convert bibs per category into summarized ranges
         for category, bibs in category_bibs.items():
-            category_bib_ranges[category] = get_ranges(list(bibs))
+            clean_bibs = [b for b in bibs if isinstance(b, int)]
+            if clean_bibs:
+                category_bib_ranges[category] = get_ranges(clean_bibs)
+            else:
+                category_bib_ranges[category] = "N/A"
 
         #print("Category Bib Ranges:", category_bib_ranges, file=sys.stderr)
 
