@@ -30,7 +30,7 @@ class GenPDF:
 
     def add_wave(self, event_id, wave_id, wave_name, start_offset, distance, laps, minutes, categories):
         """ Add a wave to an event. """
-        print(f"GenPDF: Adding wave: {event_id} {wave_id} {wave_name}, Start Offset: {start_offset} Distance: {distance} Laps: {laps} Categories: {categories}", 
+        print(f"GenPDF: Adding wave: {event_id} {wave_id} {wave_name}, Start Offset: {start_offset} Distance: {distance} Laps: {laps} Minutes: {minutes} Categories: {categories}", 
               file=sys.stderr)
 
         # **Store category list (prevent overwriting by using a list instead of a dictionary)**
@@ -105,6 +105,7 @@ class GenPDF:
                         wave["start_offset"],
                         wave["distance"],
                         wave["laps"],
+                        wave["minutes"],
                         wave_categories,  # **Wave summary categories**
                         participant.get("bib", "N/A"),
                         participant["first_name"],
@@ -116,7 +117,7 @@ class GenPDF:
                         participant.get("confirmed", "N/A"),
                     ])
 
-        columns = ["Event ID", "Event Name", "Wave", "Start Offset", "Distance", "Laps", "Categories", "Bib", 
+        columns = ["Event ID", "Event Name", "Wave", "Start Offset", "Distance", "Laps", "Minutes", "Categories", "Bib", 
                    "First Name", "Last Name", "Team", "Category", "UCI ID", "License Checked", "Confirmed", ]
         df = pd.DataFrame(data, columns=columns)
 
@@ -171,7 +172,10 @@ class GenPDF:
 
 
     def save(self, category_bib_ranges=None):
+        print("GenPDF: Saving PDFs for each event... XXXXX", file=sys.stdout)
         """ Saves each event as a separate PDF file. """
+        print(f"GenPDF: events: {self.events}", file=sys.stderr)
+        print("GenPDF: Saving PDFs for each event... XXXXX", file=sys.stdout)
         for event_id, event in self.events.items():
             # Extract event details
             event_name = event["event_name"].replace(" ", "_")

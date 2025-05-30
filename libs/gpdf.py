@@ -39,6 +39,10 @@ def page1_table(c, width, height, df, landScape=False, category_bib_ranges=None 
     for i, (wave, wave_df) in enumerate(df.groupby("Wave")):
         print(f'Wave row[{i}] {wave}', file=sys.stderr)
         print(f"Wave {wave}: {len(wave_df)} starters")
+        print(f"Wave  wave_df: {wave_df}", file=sys.stderr)
+        print(f"Wave  wave_df: Distance {wave_df['Distance'].iloc[0]}", file=sys.stderr)
+        print(f"Wave  wave_df: Laps {wave_df['Laps'].iloc[0]}", file=sys.stderr)
+        print(f"Wave  wave_df: Minutes {wave_df['Minutes'].iloc[0]}", file=sys.stderr)
 
         print(f'Wave row[{i}] Extra', file=sys.stderr)
         styles.append(("LINEBELOW", (0, 2*i + 1), (-1, 2*i + 1), 2, colors.whitesmoke))
@@ -63,8 +67,13 @@ def page1_table(c, width, height, df, landScape=False, category_bib_ranges=None 
 
         # **Use HTML `<br/>` for line breaks + `<b>` for bold, and add `leading=22` for extra spacing**
         details_style = ParagraphStyle(name="BoldDetails", fontSize=14, leading=14)  # **Increase line spacing**
-        distance = round(wave_df["Distance"].iloc[0]*wave_df["Laps"].iloc[0])
-        details_text = f"{distance} <b>km</b><br/>{wave_df['Laps'].iloc[0]} <b>laps</b>"
+        if wave_df["Distance"].iloc[0]:
+            distance = round(wave_df["Distance"].iloc[0]*wave_df["Laps"].iloc[0]) 
+            details_text = f"{distance} <b>km</b><br/>{wave_df['Laps'].iloc[0]} <b>laps</b>"
+        else:
+            # XXX minutes
+            minutes = wave_df["Minutes"].iloc[0]
+            details_text = f"{minutes} <b>m</b><br/>"
 
         details_paragraph = Paragraph(details_text, details_style)
         wave_paragraph = Paragraph(wave, details_style)
@@ -190,8 +199,14 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
 
         # **Wave Summary**
         c.setFont("Helvetica-Bold", 14)
-        distance = round(wave_df["Distance"].iloc[0] * wave_df["Laps"].iloc[0])
-        c.drawString(50, height - 80, f"{wave}: Offset {wave_df['Start Offset'].iloc[0]:.0f}:00, {distance} km, {wave_df['Laps'].iloc[0]} laps, Starters: {wave_starters}")
+        if wave_df["Distance"].iloc[0]:
+            distance = round(wave_df["Distance"].iloc[0] * wave_df["Laps"].iloc[0])
+            c.drawString(50, height - 80, f"{wave}: Offset {wave_df['Start Offset'].iloc[0]:.0f}:00, {distance} km, {wave_df['Laps'].iloc[0]} laps, Starters: {wave_starters}")
+        else:
+            # XXX minutes
+            minutes = wave_df["Minutes"].iloc[0]
+            c.drawString(50, height - 80, f"{wave}: Offset {wave_df['Start Offset'].iloc[0]:.0f}:00, {minutes} m, Starters: {wave_starters}")
+
 
         # **First Page of Wave - Display the First 10 Participants**
         #y_position = height - 360  # **Using your y_position offset**
@@ -222,12 +237,14 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
             team = row.get("Team", "")
             if not team:
                 team = ""
-            team = truncate_text(team, 28)
+            team = truncate_text(team, 24)
             print('Team:', team, file=sys.stderr)
-            table_data.append( [ row["Bib"], name, team, row["Category"], row["UCI ID"], lc])
+            category = row["Category"]
+            category = truncate_text(category, 28)
+            table_data.append( [ row["Bib"], name, team, category, row["UCI ID"], lc])
             index += 1
 
-        colWidths = [50, 200, 220, 120, 80, 10] if landScape else [30, 140, 160, 100, 80, 20]
+        colWidths = [50, 200, 220, 120, 80, 10] if landScape else [30, 140, 150, 130, 70, 20]
         table = Table(table_data, colWidths=colWidths)  # **More space per column**
 
         table.setStyle(TableStyle(styles))

@@ -136,7 +136,7 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
             if name:
                 cur_execute(f'Find competition events and waves by name {name}', cur, full_competition_query % ('name', name,), None, debug=False)
             else:
-                cur_execute(f'Find competition events and waves by date {date}', cur, full_competition_query % ('start_date', date,), None, debug=False)
+                cur_execute(f'Find competition events and waves by date {date}', cur, full_competition_query % ('start_date', date,), None, debug=True)
             
             #competition = cur.fetchone()
             waves = cur.fetchall()
@@ -249,7 +249,7 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
             else:
                 category_bib_ranges[category] = "N/A"
 
-        #print("Category Bib Ranges:", category_bib_ranges, file=sys.stderr)
+        print("Category Bib Ranges:", category_bib_ranges, file=sys.stderr)
 
 
         # Save the generated file
@@ -333,8 +333,12 @@ def main():
     landscape = args.landscape
 
     with AutoPagerEx(stderr=args.stderr, stderrdup=args.stderrdup, line_buffering=autopage.line_buffer_from_input()) as (sys.stdout, sys.stderr):
-        export_startlists(args.host, date=formatted_date, name=args.name, output_formats=output_formats, 
-                          racedb_host=args.crossmgr, landscape=landscape)
+        try:
+            export_startlists(args.host, date=formatted_date, name=args.name, output_formats=output_formats, 
+                              racedb_host=args.crossmgr, landscape=landscape)
+        except Exception as e:
+            print(f"An error occurred: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
 
 if __name__ == "__main__":
     main()
