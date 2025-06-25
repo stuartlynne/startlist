@@ -1,5 +1,6 @@
 import sys
 import pandas as pd
+from pandas import isna
 from datetime import datetime
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.pdfgen import canvas
@@ -66,14 +67,33 @@ def page1_table(c, width, height, df, landScape=False, category_bib_ranges=None 
         total_starters += len(wave_df)
 
         # **Use HTML `<br/>` for line breaks + `<b>` for bold, and add `leading=22` for extra spacing**
-        details_style = ParagraphStyle(name="BoldDetails", fontSize=14, leading=14)  # **Increase line spacing**
-        if wave_df["Distance"].iloc[0]:
-            distance = round(wave_df["Distance"].iloc[0]*wave_df["Laps"].iloc[0]) 
-            details_text = f"{distance} <b>km</b><br/>{wave_df['Laps'].iloc[0]} <b>laps</b>"
+        #details_style = ParagraphStyle(name="BoldDetails", fontSize=14, leading=14)  # **Increase line spacing**
+        #if wave_df["Distance"].iloc[0]:
+        #    distance = round(wave_df["Distance"].iloc[0]*wave_df["Laps"].iloc[0]) 
+        #    details_text = f"{distance} <b>km</b><br/>{wave_df['Laps'].iloc[0]} <b>laps</b>"
+        #else:
+        #    # XXX minutes
+        #    minutes = wave_df["Minutes"].iloc[0]
+        #    details_text = f"{minutes} <b>m</b><br/>"
+
+        details_style = ParagraphStyle(name="BoldDetails", fontSize=14, leading=14)
+
+        # Extract fields
+        d = wave_df["Distance"].iloc[0] if "Distance" in wave_df else None
+        l = wave_df["Laps"].iloc[0] if "Laps" in wave_df else None
+        m = wave_df["Minutes"].iloc[0] if "Minutes" in wave_df else None
+
+        # Check if Distance and Laps are both present and not NaN
+        if d is not None and l is not None and not (isna(d) or isna(l)):
+            distance = round(d * l)
+            details_text = f"{distance} <b>km</b><br/>{int(l)} <b>laps</b>"
+
+        # Fallback: check if Minutes is available
+        elif m is not None and not isna(m):
+            details_text = f"{int(m)} <b>m</b><br/>"
+
         else:
-            # XXX minutes
-            minutes = wave_df["Minutes"].iloc[0]
-            details_text = f"{minutes} <b>m</b><br/>"
+            details_text = "–"
 
         details_paragraph = Paragraph(details_text, details_style)
         wave_paragraph = Paragraph(wave, details_style)
@@ -198,14 +218,30 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
         print(f"Wave {wave}: {wave_starters} starters", file=sys.stderr)
 
         # **Wave Summary**
-        c.setFont("Helvetica-Bold", 14)
-        if wave_df["Distance"].iloc[0]:
-            distance = round(wave_df["Distance"].iloc[0] * wave_df["Laps"].iloc[0])
-            c.drawString(50, height - 80, f"{wave}: Offset {wave_df['Start Offset'].iloc[0]:.0f}:00, {distance} km, {wave_df['Laps'].iloc[0]} laps, Starters: {wave_starters}")
+        #c.setFont("Helvetica-Bold", 14)
+        #if wave_df["Distance"].iloc[0]:
+        #    distance = round(wave_df["Distance"].iloc[0] * wave_df["Laps"].iloc[0])
+        #    c.drawString(50, height - 80, f"{wave}: Offset {wave_df['Start Offset'].iloc[0]:.0f}:00, {distance} km, {wave_df['Laps'].iloc[0]} laps, Starters: {wave_starters}")
+        #else:
+        #    # XXX minutes
+        #    minutes = wave_df["Minutes"].iloc[0]
+        #    c.drawString(50, height - 80, f"{wave}: Offset {wave_df['Start Offset'].iloc[0]:.0f}:00, {minutes} m, Starters: {wave_starters}")
+        # Extract fields
+        d = wave_df["Distance"].iloc[0] if "Distance" in wave_df else None
+        l = wave_df["Laps"].iloc[0] if "Laps" in wave_df else None
+        m = wave_df["Minutes"].iloc[0] if "Minutes" in wave_df else None
+        offset = wave_df["Start Offset"].iloc[0] if "Start Offset" in wave_df else 0
+
+        if d is not None and l is not None and not (isna(d) or isna(l)):
+            distance = round(d * l)
+            c.drawString(50, height - 80,
+                f"{wave}: Offset {offset:.0f}:00, {distance} km, {int(l)} laps, Starters: {wave_starters}")
+        elif m is not None and not isna(m):
+            c.drawString(50, height - 80,
+                f"{wave}: Offset {offset:.0f}:00, {int(m)} m, Starters: {wave_starters}")
         else:
-            # XXX minutes
-            minutes = wave_df["Minutes"].iloc[0]
-            c.drawString(50, height - 80, f"{wave}: Offset {wave_df['Start Offset'].iloc[0]:.0f}:00, {minutes} m, Starters: {wave_starters}")
+            c.drawString(50, height - 80,
+                f"{wave}: Offset {offset:.0f}:00, Starters: {wave_starters}")
 
 
         # **First Page of Wave - Display the First 10 Participants**
