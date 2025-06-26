@@ -83,15 +83,13 @@ def page1_table(c, width, height, df, landScape=False, category_bib_ranges=None 
         l = wave_df["Laps"].iloc[0] if "Laps" in wave_df else None
         m = wave_df["Minutes"].iloc[0] if "Minutes" in wave_df else None
 
+        # check if Minutes is available
+        if m is not None and not isna(m):
+            details_text = f"{int(m)} <b>m</b><br/>"
         # Check if Distance and Laps are both present and not NaN
-        if d is not None and l is not None and not (isna(d) or isna(l)):
+        elif d is not None and l is not None and not (isna(d) or isna(l)):
             distance = round(d * l)
             details_text = f"{distance} <b>km</b><br/>{int(l)} <b>laps</b>"
-
-        # Fallback: check if Minutes is available
-        elif m is not None and not isna(m):
-            details_text = f"{int(m)} <b>m</b><br/>"
-
         else:
             details_text = "–"
 
@@ -232,13 +230,14 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
         m = wave_df["Minutes"].iloc[0] if "Minutes" in wave_df else None
         offset = wave_df["Start Offset"].iloc[0] if "Start Offset" in wave_df else 0
 
-        if d is not None and l is not None and not (isna(d) or isna(l)):
+        c.setFont("Helvetica-Bold", 14)
+        if m is not None and not isna(m):
+            c.drawString(50, height - 80,
+                f"{wave}: Offset {offset:.0f}:00, {int(m)} m, Starters: {wave_starters}")
+        elif d is not None and l is not None and not (isna(d) or isna(l)):
             distance = round(d * l)
             c.drawString(50, height - 80,
                 f"{wave}: Offset {offset:.0f}:00, {distance} km, {int(l)} laps, Starters: {wave_starters}")
-        elif m is not None and not isna(m):
-            c.drawString(50, height - 80,
-                f"{wave}: Offset {offset:.0f}:00, {int(m)} m, Starters: {wave_starters}")
         else:
             c.drawString(50, height - 80,
                 f"{wave}: Offset {offset:.0f}:00, Starters: {wave_starters}")
