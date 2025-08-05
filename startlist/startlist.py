@@ -20,7 +20,7 @@ from startlist.genbibs import GenBibs
 from startlist.geninfo import GenInfo
 from startlist.genpdf import GenPDF
 
-__version__ = "0.5.5"
+__version__ = "0.5.6"
 
 
 def format_date(input_date):
@@ -112,7 +112,7 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
         if 'html' in output_formats:
             generators.append(GenHTML(host, competition_name, date, ranges, ))
         if 'cm' in output_formats:
-            generators.append(GenCM(racedb_host, date, competition_id, competition_long_name, ))
+            generators.append(GenCM(racedb_host, date, competition_id, competition_name, ))
         if 'audit' in output_formats:
             generators.append(GenAudit(racedb_host, date, competition_id, competition_long_name, ))
         if 'bibs' in output_formats:

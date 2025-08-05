@@ -15,11 +15,12 @@ class GenCM:
         self.date = date
         self.competition_id = competition_id
         self.competition_name = competition_name
-        self.events = []
+        self.events = {}
 
     def add_event(self, event_id, event_name, event_start_time):
         print(f"Adding event {event_id} {event_name} to competition", file=sys.stderr)
-        self.events.append(event_id)
+        self.event_name = event_name
+        self.events[event_name] = event_id
 
     def add_wave(self, event_id, wave_id, wave_name, start_offset, distance, laps, minutes, categories, ):
         pass
@@ -28,14 +29,18 @@ class GenCM:
         pass
 
     def save(self, category_bib_ranges=None):
-        for i, event_id in enumerate(self.events, 1):
+        #for i, event_id in enumerate(self.events, 1):
+        for i, (event_name, event_id) in enumerate(self.events.items()):
             print(f"Downloading event {event_id}...", file=sys.stderr)
             url = urljoin(f"https://{self.racedb_host}/RaceDB/Competitions/CompetitionDashboard/{self.competition_id}/EventMassStartCrossMgr/", 
                           str(event_id))
             print('Download URL:', url, file=sys.stderr)
             response = requests.get(url)
             if response.status_code == 200:
-                file_name = f"{self.date}-{self.competition_name.replace(' ', '_')}_{i}.xlsx"
+                #file_name = f"{self.date}-{self.competition_name.replace(' ', '_')}_{i}.xlsx"
+                #file_name = f"{self.date}-{event_name.replace(' ', '_')}.xlsx"
+                #file_name = f"{self.date}-{self.competition_name.replace(' ', '_')}_{event_name.replace('/','_').replace(' ','_')}-r{i}.xlsx"
+                file_name = f"{self.date}-{self.competition_name.replace(' ', '_')}-{event_name.replace('/','_')}.xlsx"
                 with open(file_name, "wb") as file:
                     file.write(response.content)
                 print(f"Downloaded event {event_id} as {file_name}", file=sys.stderr)
