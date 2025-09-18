@@ -332,6 +332,5 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
             page_num += 1
 
     c.save()
-    print(f"PDF saved as {pdf_filename}")
 
 

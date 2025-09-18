@@ -187,6 +187,7 @@ class GenPDF:
             # Generate a PDF for this event
             print(f"Generating PDF: {filename}", file=sys.stderr)
             self.generate_pdf(event_id, filename, landScape=self.landscape, category_bib_ranges=category_bib_ranges)
+            print(f"PDF saved as {pdf_filename}")
 
         return "PDFs generated for each event."
 
