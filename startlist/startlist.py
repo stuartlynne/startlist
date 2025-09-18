@@ -20,7 +20,7 @@ from startlist.genbibs import GenBibs
 from startlist.geninfo import GenInfo
 from startlist.genpdf import GenPDF
 
-__version__ = "0.5.6"
+__version__ = "0.5.7"
 
 
 def format_date(input_date):
@@ -296,6 +296,7 @@ def main():
             description="Download CrossMgr and Start lists for a RaceDB competition.", 
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog=epilog)
+    parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('--host', type=str, default='localhost', help='database host')
     parser.add_argument('--date', type=str, help='Start date of the competition in YYYY-MM-DD format.')
     parser.add_argument('--name', type=str, help='Name of the competition.')
