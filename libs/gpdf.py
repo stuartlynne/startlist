@@ -176,6 +176,7 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
     ]) + 1  # **+1 for title page**
 
     # **Title Page**
+    self.draw_preliminary_watermark(c, width, height)
     self.draw_header_footer(c, width, height, 1, total_pages)
 
     # **Generated Timestamp (at top)**
@@ -205,6 +206,7 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
     # **Process Riders (Grouped by Wave)**
     page_num = 2
     for wave, wave_df in df.groupby("Wave"):
+        self.draw_preliminary_watermark(c, width, height)
         self.draw_header_footer(c, width, height, page_num, total_pages)
 
         c.setFont("Helvetica", 16)
@@ -261,8 +263,9 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
         styles = init_styles.copy()
         index = 1
         for i, (_, row) in enumerate(wave_df.iloc[:first_page_rows].iterrows()):
-            if i % 2 == 1:
-                styles.append(("BACKGROUND", (0, i), (-1, i), colors.whitesmoke))
+            if i % 2 == 0:
+                row_idx = i + 1  # +1 to skip header row
+                styles.append(("BACKGROUND", (0, row_idx), (-1, row_idx), colors.whitesmoke))
             lc = ""
             if row["License Checked"]:
                 lc = "l"
@@ -293,6 +296,7 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
         # **Additional Pages (Remaining Participants, 25 per page)**
         remaining_participants = wave_df.iloc[first_page_rows:]
         while not remaining_participants.empty:
+            self.draw_preliminary_watermark(c, width, height)
             self.draw_header_footer(c, width, height, page_num, total_pages)
 
             # Move table further DOWN on subsequent pages
@@ -303,8 +307,9 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
             styles = init_styles.copy()
             # XXX Teams column is not getting truncated, a long team name gets printed overtop the Category column
             for i, (_, row) in enumerate(remaining_participants.iloc[:remaining_page_rows].iterrows()):
-                if i % 2 == 1:
-                    styles.append(("BACKGROUND", (0, i), (-1, i), colors.whitesmoke))
+                if i % 2 == 0:
+                    row_idx = i + 1  # +1 to skip header row
+                    styles.append(("BACKGROUND", (0, row_idx), (-1, row_idx), colors.whitesmoke))
                 lc = ""
                 if row["License Checked"]:
                     lc = "l"
@@ -332,5 +337,3 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
             page_num += 1
 
     c.save()
-
-

@@ -9,12 +9,13 @@ from libs.gpdf import generate_pdf
 
 
 class GenPDF:
-    def __init__(self, date, competition_name, competition_long_name, landscape=False):
+    def __init__(self, date, competition_name, competition_long_name, landscape=False, preliminary=False):
         print('GenPDF:', date, competition_name, competition_long_name, file=sys.stdout)
         self.date = date
         self.competition_name = competition_name
         self.competition_long_name = competition_long_name
         self.landscape = landscape
+        self.preliminary = preliminary
         self.events = {}
 
     def add_event(self, event_id, event_name, event_start_time):
@@ -128,9 +129,27 @@ class GenPDF:
         return df
 
 
+    def draw_preliminary_watermark(self, c, width, height):
+        if not self.preliminary:
+            return
+
+        c.saveState()
+        c.translate(width / 2.0, height / 2.0)
+        c.rotate(-45)
+
+        font_size = 90 if width > height else 108
+        c.setFont("Helvetica-Bold", font_size)
+
+        watermark_color = colors.Color(0.4, 0.4, 0.4, alpha=0.15)
+        c.setFillColor(watermark_color)
+        if hasattr(c, "setFillAlpha"):
+            c.setFillAlpha(0.15)
+
+        c.drawCentredString(0, 0, "NOT FINAL")
+        c.restoreState()
+
     def draw_header_footer(self, c, width, height, page_num, total_pages):
         """ Draws header and footer on each page. """
-
         # **Set Font & Color for Header (Black)**
         c.setFont("Helvetica-Bold", 12)
         c.setFillColor(colors.black)
