@@ -10,6 +10,161 @@ from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import Paragraph
 
+def draw_lapboard(c, width, height, df, bottom_limit_y, landScape=False):
+    """Draw a 16:9 lapboard at the bottom of the page.
+
+    - The board is anchored above the page bottom with a small margin.
+    - It is split into N vertical windows, where N = number of start waves.
+    - Each window shows the wave label and its list of categories.
+
+    bottom_limit_y: maximum Y the board's top edge may reach (to avoid overlapping content above).
+    """
+    left_margin = 50
+    right_margin = 50
+    bottom_margin = 40
+    title_text = "Lap Board"
+    title_font = "Helvetica-Bold"
+    title_font_size = 12
+    title_gap = 6  # space between title and board
+
+    # Determine waves ordered by start offset if available to reflect race order
+    if "Start Offset" in df.columns:
+        wave_first_offsets = df.groupby("Wave")["Start Offset"].first()
+        waves_order = wave_first_offsets.sort_values().index.tolist()
+        start_offset_by_wave = wave_first_offsets.to_dict()
+    else:
+        waves_order = list(df.groupby("Wave").groups.keys())
+        start_offset_by_wave = {}
+
+    n_waves = max(1, len(waves_order))
+
+    # Compute the maximum available height for the board (space below other content)
+    # Leave room for the title above the board so it does not overlap content.
+    available_h = max(0, bottom_limit_y - bottom_margin - (title_font_size + title_gap))
+    if available_h <= 0:
+        return  # No room; skip drawing
+
+    # Target a 16:9 aspect; choose width first and fit height, then clamp to available height
+    board_max_w = max(100, width - (left_margin + right_margin))
+    ideal_h = board_max_w * 9.0 / 16.0
+    board_h = min(ideal_h, available_h)
+    board_w = board_h * 16.0 / 9.0
+
+    # Shrink the lapboard by ~30%
+    scale = 0.70
+    board_w *= scale
+    board_h *= scale
+
+    # Anchor at bottom, horizontally aligned to left margin
+    board_x = left_margin
+    board_y = bottom_margin
+
+    # Draw title above the board, left-justified
+    c.setFont(title_font, title_font_size)
+    c.setFillColor(colors.black)
+    c.drawString(board_x, board_y + board_h + title_gap, title_text)
+
+    # Draw outer rectangle
+    c.setStrokeColor(colors.black)
+    c.setLineWidth(1)
+    c.rect(board_x, board_y, board_w, board_h, stroke=1, fill=0)
+
+    # Split into N vertical windows
+    window_w = board_w / n_waves
+    window_h = board_h
+
+    # Vertical split lines
+    for i in range(1, n_waves):
+        x = board_x + i * window_w
+        c.line(x, board_y, x, board_y + window_h)
+
+    # Text styles
+    title_font = "Helvetica-Bold"
+    cat_font = "Helvetica"
+    label_font = "Helvetica-Bold"
+    label_font_size = 25  # increased ~250% for prominence
+
+    # For each window, draw wave name and its categories
+    def index_to_letters(i: int) -> str:
+        # Excel-like column naming: 0->A, 25->Z, 26->AA, ...
+        s = ""
+        n = i
+        while True:
+            n, r = divmod(n, 26)
+            s = chr(ord('A') + r) + s
+            if n == 0:
+                break
+            n -= 1
+        return s
+
+    for idx, wave in enumerate(waves_order):
+        wx = board_x + idx * window_w
+        wy = board_y
+
+        # Window padding
+        pad_x = 6
+        pad_top = 6
+        pad_between = 4
+
+        # Title (Wave name + start offset in m:ss if available)
+        c.setFont(title_font, 12)
+        minutes_sec = None
+        if wave in start_offset_by_wave and start_offset_by_wave[wave] is not None:
+            try:
+                minutes = int(start_offset_by_wave[wave] // 60)
+                minutes_sec = f"{minutes}:00"
+            except Exception:
+                minutes_sec = None
+        title = f"{wave}"
+        if minutes_sec is not None:
+            title = f"{wave} : {minutes_sec}"
+        # Truncate title to fit within window width
+        max_title_chars = max(1, int((window_w - 2 * pad_x) / (0.6 * 12)))
+        title_draw = title if len(title) <= max_title_chars else (title[:max_title_chars - 1] + "\u2026")
+        c.drawString(wx + pad_x, wy + window_h - pad_top - 12, title_draw)
+
+        # Collect categories for this wave
+        cats = (
+            df[df["Wave"] == wave]["Category"].dropna().astype(str).unique().tolist()
+            if "Category" in df.columns else []
+        )
+
+        # Determine a font size that roughly fits all category lines
+        max_lines = max(1, int((window_h - (pad_top + 16)) // 12))  # assuming 12pt baseline
+        # Start with 11pt and reduce modestly for many categories
+        base_cat_size = 11
+        if len(cats) > max_lines:
+            # scale down but clamp to readable 8pt minimum
+            scale = max(8.0 / base_cat_size, min(1.0, max_lines / float(len(cats))))
+            cat_size = max(8.0, base_cat_size * scale)
+        else:
+            cat_size = base_cat_size
+
+        c.setFont(cat_font, cat_size)
+
+        # Draw categories as simple lines, stop if we run out of space
+        line_h = cat_size + pad_between
+        y = wy + window_h - pad_top - 12 - pad_between - line_h
+        for cat in cats:
+            if y < wy + 6:
+                break
+            # Truncate category to fit window width (approx character width 0.5*pt)
+            max_chars = max(1, int((window_w - 2 * pad_x) / (0.5 * cat_size)))
+            text = cat if len(cat) <= max_chars else (cat[:max_chars - 1] + "\u2026")
+            c.drawString(wx + pad_x, y, text)
+            y -= line_h
+
+        # Add window label (A, B, C, ...) at bottom-left of each window
+        c.setFont(label_font, label_font_size)
+        c.drawString(wx + pad_x, wy + 6, index_to_letters(idx))
+
+        # Add time marker at bottom-right of each window (e.g., 0:00)
+        time_font_size = max(8, int(label_font_size * 0.8))
+        c.setFont(label_font, time_font_size)
+        c.drawRightString(wx + window_w - pad_x, wy + 6, "0:00")
+    # done
+
+
 def page1_table(c, width, height, df, landScape=False, category_bib_ranges=None ):
     styles = [
         # **Header Row**
@@ -117,9 +272,10 @@ def page1_table(c, width, height, df, landScape=False, category_bib_ranges=None 
     # **Draw Table Without Borders**
     table.wrapOn(c, width, height)
     table_width, table_height = table.wrap(width, height)
-    table.drawOn(c, 50, height - 190 - table_height)  # **Ensures extra space below header**
+    table_bottom_y = height - 190 - table_height
+    table.drawOn(c, 50, table_bottom_y)  # **Ensures extra space below header**
 
-    return total_starters
+    return total_starters, table_bottom_y
 
 def truncate_text(text, max_length):
     """Truncate text to fit within max_length, adding '...' if necessary."""
@@ -195,10 +351,18 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
     print('Total Starters:', total_starters, file=sys.stderr)
 
     # **Wave Summary Table (Formatted)**
-    total_starts = page1_table(c, width, height, df, landScape=landScape, category_bib_ranges=category_bib_ranges )
+    total_starts, table_bottom_y = page1_table(
+        c, width, height, df, landScape=landScape, category_bib_ranges=category_bib_ranges
+    )
     print('Total Starters:', total_starters, file=sys.stderr)
     c.setFont("Helvetica", 20)
     c.drawString(50, height - 180, f"Total Starters: {total_starts}")
+
+    # **Lapboard graphic (16:9) below summary table**
+    try:
+        draw_lapboard(c, width, height, df, bottom_limit_y=table_bottom_y - 10, landScape=landScape)
+    except Exception as e:
+        print(f"Lapboard draw error: {e}", file=sys.stderr)
 
     c.showPage()
 
