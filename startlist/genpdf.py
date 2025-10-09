@@ -5,7 +5,7 @@ from reportlab.lib.pagesizes import letter, landscape
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.platypus import Table, TableStyle
-from libs.gpdf import generate_pdf
+from libs.gpdf import generate_pdf, render_first_page
 
 
 class GenPDF:
@@ -208,7 +208,28 @@ class GenPDF:
             self.generate_pdf(event_id, filename, landScape=self.landscape, category_bib_ranges=category_bib_ranges)
             print(f"PDF saved as {filename}")
 
-        return "PDFs generated for each event."
+        # Generate a competition summary PDF comprised of the first page from each event
+        try:
+            # Summary name: YYYY-MM-DD-RaceName-summary.pdf
+            summary_filename = f"{self.date}-{self.competition_name.replace(' ', '_')}-summary.pdf"
+            pagesize = landscape(letter) if self.landscape else letter
+            csum = canvas.Canvas(summary_filename, pagesize=pagesize)
+
+            # Render events in chronological order
+            sorted_events = sorted(self.events.items(), key=lambda kv: kv[1]['event_start_time'])
+            total_pages = len(sorted_events)
+            page_num = 1
+            for event_id, _ in sorted_events:
+                ok = self.render_first_page(event_id, csum, page_num, total_pages, landScape=self.landscape, category_bib_ranges=category_bib_ranges)
+                if ok:
+                    page_num += 1
+            csum.save()
+            print(f"Summary PDF saved as {summary_filename}")
+        except Exception as e:
+            print(f"Warning: Failed to create summary PDF: {e}", file=sys.stderr)
+
+        return "PDFs generated for each event (and summary)."
 
 
 GenPDF.generate_pdf = generate_pdf
+GenPDF.render_first_page = render_first_page

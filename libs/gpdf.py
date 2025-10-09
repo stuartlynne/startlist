@@ -281,6 +281,63 @@ def truncate_text(text, max_length):
     """Truncate text to fit within max_length, adding '...' if necessary."""
     return text if len(text) <= max_length else text[:max_length-3] + "..."
 
+def render_first_page(self, event_id, c, page_num, total_pages, landScape=False, category_bib_ranges=None):
+    """Render only the first (title/summary) page for a given event onto an existing canvas.
+
+    Draws header/footer, event title/time, wave summary table, total starters, and the lapboard graphic.
+    Ends with a page break (showPage).
+    """
+    # Resolve page size for orientation
+    width, height = (landscape(letter) if landScape else letter)
+
+    # Validate event and build DataFrame filtered to this event
+    event = self.events.get(event_id)
+    if not event:
+        print(f"Error: Event {event_id} not found (render_first_page).", file=sys.stderr)
+        return False
+
+    df = self.to_dataframe(category_bib_ranges=category_bib_ranges)
+    if "Event ID" not in df.columns:
+        print("Error: 'Event ID' column missing from DataFrame! (render_first_page)", file=sys.stderr)
+        return False
+
+    df = df[df["Event ID"] == event_id]
+    if df.empty:
+        print(f"Warning: No participants found for event {event_id}. Skipping page.", file=sys.stderr)
+        return False
+
+    # Header/footer + watermark
+    self.draw_preliminary_watermark(c, width, height)
+    self.draw_header_footer(c, width, height, page_num, total_pages)
+
+    # Generated timestamp (top-left)
+    c.setFont("Helvetica", 12)
+    c.drawString(50, height - 30, f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+    # Event title and time
+    c.setFont("Helvetica-Bold", 32)
+    c.drawString(50, height - 100, self.competition_long_name)
+
+    c.setFont("Helvetica", 28)
+    c.drawString(50, height - 140, event["event_start_time"].strftime("%Y-%m-%d %I:%M %p"))
+
+    # Wave summary table
+    total_starts, table_bottom_y = page1_table(
+        c, width, height, df, landScape=landScape, category_bib_ranges=category_bib_ranges
+    )
+
+    c.setFont("Helvetica", 20)
+    c.drawString(50, height - 180, f"Total Starters: {total_starts}")
+
+    # Lapboard graphic under the table
+    try:
+        draw_lapboard(c, width, height, df, bottom_limit_y=table_bottom_y - 10, landScape=landScape)
+    except Exception as e:
+        print(f"Lapboard draw error (render_first_page): {e}", file=sys.stderr)
+
+    c.showPage()
+    return True
+
 def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ranges=None):
     """ Generates a PDF report formatted like Thunderbird PDF. """
     print("Category Bib Ranges:", category_bib_ranges, file=sys.stderr)
