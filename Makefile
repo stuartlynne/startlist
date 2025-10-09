@@ -41,7 +41,7 @@ install-support:
 	set -x; cp -vr bin/* /usr/local/bin
 
 uninstall:
-	pip3 uninstall qlmux
+	pip3 uninstall .
 
 sync:
 	aws s3 sync --region us-west-2 . s3://wimseyraceresults/2024/testing --exclude='*' --include='*.html'
