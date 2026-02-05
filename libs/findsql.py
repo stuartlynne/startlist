@@ -1,6 +1,7 @@
 
 import sys
 import argparse
+import os
 import psycopg2
 
 def log_debug(message):
@@ -28,7 +29,14 @@ def connect_db(host):
         host=host,
         port="5432"
     )
-    return conn, conn.cursor()
+    cur = conn.cursor()
+    tz = os.environ.get("TZ")
+    if tz:
+        try:
+            cur.execute("SET TIME ZONE %s;", (tz,))
+        except Exception as e:
+            print(f"Warning: Failed to set TIME ZONE to {tz}: {e}", file=sys.stderr)
+    return conn, cur
 
 def find_numberset(host, numberset=None):
     try:
@@ -88,4 +96,3 @@ def find_competition(host, name=None, date=None, category_format=None):
     except psycopg2.DatabaseError as error:
         print(f"Database error: {error}", file=sys.stderr)
     return conn, cur, competition_id, competition_name, competition_long_name, competition_start_date, number_set_id
-

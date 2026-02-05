@@ -1,6 +1,7 @@
 import sys
 import os
 import psycopg2
+import re
 from psycopg2.extras import DictCursor
 import traceback
 from datetime import datetime
@@ -33,6 +34,33 @@ def remove_tzinfo(dt):
     if isinstance(dt, datetime) and dt.tzinfo is not None:
         return dt.replace(tzinfo=None)
     return dt
+
+def normalize_event_time(event_name, event_start_time):
+    """If event_name contains a time (e.g., '10:30AM'), align event_start_time to it."""
+    if not isinstance(event_start_time, datetime):
+        return event_start_time
+    m = re.search(r"\b(\d{1,2}):(\d{2})\s*([AP]M)\b", event_name, re.IGNORECASE)
+    if not m:
+        return event_start_time
+    hour = int(m.group(1)) % 12
+    minute = int(m.group(2))
+    ampm = m.group(3).upper()
+    if ampm == "PM":
+        hour += 12
+    candidate = event_start_time.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    delta_minutes = int((candidate - event_start_time).total_seconds() / 60)
+    if delta_minutes != 0:
+        print(
+            f"Adjusting event_start_time from {event_start_time!r} to {candidate!r} "
+            f"based on event_name '{event_name}' (delta {delta_minutes}m)",
+            file=sys.stderr,
+        )
+        return candidate
+    print(
+        f"Event name time matches event_start_time: {event_name} -> {event_start_time!r}",
+        file=sys.stderr,
+    )
+    return event_start_time
 
 
 def log_sql(query, params, debug=True):
@@ -145,6 +173,9 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
                 return
 
             last_event_id = None
+            tz_env = os.environ.get("TZ", "")
+            if tz_env:
+                print(f"TZ env: {tz_env}", file=sys.stderr)
             for wave in waves:
                 if not wave:
                     print(f"No wave found for {name or date}.", file=sys.stderr)
@@ -153,7 +184,11 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
                 (competition_id, competition_name, competition_long_name, event_id, event_name, 
                     event_start_time, wave_id, wave_name, start_offset, distance, laps, minutes) = wave
 
+                print(f"Raw event_start_time: {event_start_time!r}, tzinfo={getattr(event_start_time, 'tzinfo', None)}",
+                      file=sys.stderr)
                 event_start_time = remove_tzinfo(event_start_time)  # Strip timezone info
+                print(f"Normalized event_start_time: {event_start_time!r}", file=sys.stderr)
+                event_start_time = normalize_event_time(event_name, event_start_time)
 
                 print(f"wave found: {event_id, event_name, event_start_time, wave_id, wave_name, start_offset, distance, laps, minutes}", file=sys.stderr)
 
