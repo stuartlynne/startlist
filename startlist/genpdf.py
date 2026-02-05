@@ -116,10 +116,33 @@ class GenPDF:
                         participant.get("uci_id", "N/A"),
                         participant.get("license_checked", "N/A"),
                         participant.get("confirmed", "N/A"),
+                        True,  # Is Participant
+                    ])
+                
+                if not sorted_participants:
+                    data.append([
+                        event_id,
+                        event.get("competition_long_name", "Unknown"),
+                        wave["wave_name"],
+                        wave["start_offset"],
+                        wave["distance"],
+                        wave["laps"],
+                        wave["minutes"],
+                        wave_categories,
+                        "N/A",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "N/A",
+                        "N/A",
+                        "N/A",
+                        False,  # Is Participant
                     ])
 
-        columns = ["Event ID", "Event Name", "Wave", "Start Offset", "Distance", "Laps", "Minutes", "Categories", "Bib", 
-                   "First Name", "Last Name", "Team", "Category", "UCI ID", "License Checked", "Confirmed", ]
+        columns = ["Event ID", "Event Name", "Wave", "Start Offset", "Distance", "Laps", "Minutes", "Categories", "Bib",
+                   "First Name", "Last Name", "Team", "Category", "UCI ID", "License Checked", "Confirmed",
+                   "Is Participant"]
         df = pd.DataFrame(data, columns=columns)
 
         print(f"\n=== DEBUG: DataFrame Created with {len(df)} rows ===\n", file=sys.stderr)

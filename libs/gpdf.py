@@ -166,6 +166,8 @@ def draw_lapboard(c, width, height, df, bottom_limit_y, landScape=False):
 
 
 def page1_table(c, width, height, df, landScape=False, category_bib_ranges=None ):
+    if category_bib_ranges is None:
+        category_bib_ranges = {}
     styles = [
         # **Header Row**
         ("ALIGN", (0, 0), (0, 0), "LEFT"),
@@ -194,7 +196,10 @@ def page1_table(c, width, height, df, landScape=False, category_bib_ranges=None 
     total_starters = 0
     for i, (wave, wave_df) in enumerate(df.groupby("Wave")):
         print(f'Wave row[{i}] {wave}', file=sys.stderr)
-        print(f"Wave {wave}: {len(wave_df)} starters")
+        participant_rows = wave_df
+        if "Is Participant" in wave_df.columns:
+            participant_rows = wave_df[wave_df["Is Participant"]]
+        print(f"Wave {wave}: {len(participant_rows)} starters")
         print(f"Wave  wave_df: {wave_df}", file=sys.stderr)
         print(f"Wave  wave_df: Distance {wave_df['Distance'].iloc[0]}", file=sys.stderr)
         print(f"Wave  wave_df: Laps {wave_df['Laps'].iloc[0]}", file=sys.stderr)
@@ -205,21 +210,24 @@ def page1_table(c, width, height, df, landScape=False, category_bib_ranges=None 
         table_data.append(["", "", "", "", ""])  # **Empty row for spacing**
 
         # **Extract formatted categories (already includes gender)**
-        category_counts = wave_df.groupby("Category").size().reset_index(name="Starters")
-        formatted_categories = wave_df["Categories"].iloc[0]  
-        print(f"Formatted Categories: {formatted_categories}", file=sys.stderr)
-        #formatted_categories = ",".join(f"{row['Category']} {row['Starters']} [{category_bib_ranges.get(row['Category'], '')}]" for _, row in category_counts.iterrows())
-        formatted_categories = ",\n".join(f"{row['Category']} {category_bib_ranges.get(row['Category'], '')}" for _, row in category_counts.iterrows())
-        category_starters = "+".join(f"{row['Starters']}" for _, row in category_counts.iterrows())
+        formatted_categories = wave_df["Categories"].iloc[0]
+        category_list = [c.strip() for c in formatted_categories.split(",") if c.strip()]
+        category_counts = participant_rows.groupby("Category").size().to_dict()
+
+        formatted_categories = ",\n".join(
+            f"{category} {category_bib_ranges.get(category, '')}".strip()
+            for category in category_list
+        )
+        category_starters = "+".join(str(category_counts.get(category, 0)) for category in category_list)
         print(f"Formatted Categories: {formatted_categories}", file=sys.stderr)
         print(f"Category Starters: {category_starters}", file=sys.stderr)
-        print(f"Number of Categories: {len(category_counts)}", file=sys.stderr)
+        print(f"Number of Categories: {len(category_list)}", file=sys.stderr)
 
-        wave_starters = f"{len(wave_df)}"
-        if len(category_counts) > 1:
+        wave_starters = f"{len(participant_rows)}"
+        if len(category_list) > 1:
             wave_starters += f"\n{category_starters}"
 
-        total_starters += len(wave_df)
+        total_starters += len(participant_rows)
 
         # **Use HTML `<br/>` for line breaks + `<b>` for bold, and add `leading=22` for extra spacing**
         #details_style = ParagraphStyle(name="BoldDetails", fontSize=14, leading=14)  # **Increase line spacing**
@@ -303,7 +311,7 @@ def render_first_page(self, event_id, c, page_num, total_pages, landScape=False,
 
     df = df[df["Event ID"] == event_id]
     if df.empty:
-        print(f"Warning: No participants found for event {event_id}. Skipping page.", file=sys.stderr)
+        print(f"Warning: No waves found for event {event_id}. Skipping page.", file=sys.stderr)
         return False
 
     # Header/footer + watermark
@@ -357,7 +365,7 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
     df = df[df["Event ID"] == event_id]  # **Filter only the selected event**
 
     if df.empty:
-        print(f"Warning: No participants found for event {event_id}.", file=sys.stderr)
+        print(f"Warning: No waves found for event {event_id}.", file=sys.stderr)
         return
 
 
@@ -382,11 +390,17 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
     #wrap_style = ParagraphStyle(name="WrapStyle", wordWrap="CJK", leading=16)  # **Increase line spacing**
     wrap_style = ParagraphStyle(name="WrapStyle", leading=16)  # **Increase line spacing**
 
-    # **Fix: Properly account for the first-page participants**
-    total_pages = sum([
-        1 + max(0, -(-(len(wave_df) - first_page_rows) // remaining_page_rows))  # **Fix for additional pages**
-        for _, wave_df in df.groupby("Wave")
-    ]) + 1  # **+1 for title page**
+    participant_df = df[df["Is Participant"]] if "Is Participant" in df.columns else df
+    total_participants = len(participant_df)
+
+    if total_participants == 0:
+        total_pages = 1
+    else:
+        # **Fix: Properly account for the first-page participants**
+        total_pages = sum([
+            1 + max(0, -(-(len(wave_df) - first_page_rows) // remaining_page_rows))  # **Fix for additional pages**
+            for _, wave_df in participant_df.groupby("Wave")
+        ]) + 1  # **+1 for title page**
 
     # **Title Page**
     self.draw_preliminary_watermark(c, width, height)
@@ -404,7 +418,7 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
     c.setFont("Helvetica", 28)  # **Smaller Font for Time**
     c.drawString(50, height - 140, event["event_start_time"].strftime("%Y-%m-%d %I:%M %p"))
 
-    total_starters = len(df)
+    total_starters = total_participants
     print('Total Starters:', total_starters, file=sys.stderr)
 
     # **Wave Summary Table (Formatted)**
@@ -424,9 +438,13 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
     c.showPage()
 
 
+    if total_participants == 0:
+        c.save()
+        return
+
     # **Process Riders (Grouped by Wave)**
     page_num = 2
-    for wave, wave_df in df.groupby("Wave"):
+    for wave, wave_df in participant_df.groupby("Wave"):
         self.draw_preliminary_watermark(c, width, height)
         self.draw_header_footer(c, width, height, page_num, total_pages)
 
