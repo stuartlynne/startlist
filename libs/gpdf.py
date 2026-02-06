@@ -315,7 +315,8 @@ def render_first_page(self, event_id, c, page_num, total_pages, landScape=False,
         return False
 
     # Header/footer + watermark
-    self.draw_preliminary_watermark(c, width, height)
+    watermark = self.should_watermark(event["event_start_time"])
+    self.draw_preliminary_watermark(c, width, height, watermark)
     self.draw_header_footer(c, width, height, page_num, total_pages)
 
     # Generated timestamp (top-left)
@@ -403,7 +404,8 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
         ]) + 1  # **+1 for title page**
 
     # **Title Page**
-    self.draw_preliminary_watermark(c, width, height)
+    watermark = self.should_watermark(event["event_start_time"])
+    self.draw_preliminary_watermark(c, width, height, watermark)
     self.draw_header_footer(c, width, height, 1, total_pages)
 
     # **Generated Timestamp (at top)**
@@ -445,7 +447,7 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
     # **Process Riders (Grouped by Wave)**
     page_num = 2
     for wave, wave_df in participant_df.groupby("Wave"):
-        self.draw_preliminary_watermark(c, width, height)
+        self.draw_preliminary_watermark(c, width, height, watermark)
         self.draw_header_footer(c, width, height, page_num, total_pages)
 
         c.setFont("Helvetica", 16)
@@ -535,7 +537,7 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
         # **Additional Pages (Remaining Participants, 25 per page)**
         remaining_participants = wave_df.iloc[first_page_rows:]
         while not remaining_participants.empty:
-            self.draw_preliminary_watermark(c, width, height)
+            self.draw_preliminary_watermark(c, width, height, watermark)
             self.draw_header_footer(c, width, height, page_num, total_pages)
 
             # Move table further DOWN on subsequent pages

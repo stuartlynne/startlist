@@ -1,5 +1,5 @@
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.pdfgen import canvas
@@ -9,13 +9,13 @@ from libs.gpdf import generate_pdf, render_first_page
 
 
 class GenPDF:
-    def __init__(self, date, competition_name, competition_long_name, landscape=False, preliminary=False):
+    def __init__(self, date, competition_name, competition_long_name, landscape=False, final=False):
         print('GenPDF:', date, competition_name, competition_long_name, file=sys.stdout)
         self.date = date
         self.competition_name = competition_name
         self.competition_long_name = competition_long_name
         self.landscape = landscape
-        self.preliminary = preliminary
+        self.final = final
         self.events = {}
 
     def add_event(self, event_id, event_name, event_start_time):
@@ -152,8 +152,16 @@ class GenPDF:
         return df
 
 
-    def draw_preliminary_watermark(self, c, width, height):
-        if not self.preliminary:
+    def should_watermark(self, event_start_time):
+        if self.final:
+            return False
+        if not isinstance(event_start_time, datetime):
+            return True
+        cutoff = event_start_time - timedelta(minutes=30)
+        return datetime.now() < cutoff
+
+    def draw_preliminary_watermark(self, c, width, height, enabled):
+        if not enabled:
             return
 
         c.saveState()

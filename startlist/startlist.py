@@ -99,7 +99,7 @@ WHERE
     c.%s = '%s';
         """
 
-def export_startlists(host='localhost', date=None, name=None, output_formats=None, racedb_host=None, landscape=False, preliminary=False):
+def export_startlists(host='localhost', date=None, name=None, output_formats=None, racedb_host=None, landscape=False, final=False):
     generators = []
 
     print('Output formats:', output_formats, file=sys.stderr)
@@ -148,7 +148,7 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
         if 'info' in output_formats:
             generators.append(GenInfo(racedb_host, date, competition_id, competition_long_name, ranges, bibs, ))
         if 'pdf' in output_formats:
-            generators.append(GenPDF(date, competition_name, competition_long_name, landscape=landscape, preliminary=preliminary, ))
+            generators.append(GenPDF(date, competition_name, competition_long_name, landscape=landscape, final=final, ))
         if 'xlsx' in output_formats:
             generators.append(GenXLSX(date, competition_name, competition_long_name))
         if generators == []:
@@ -342,8 +342,8 @@ def main():
     parser.add_argument('--info', action='store_true', help='Summary of Events/Waves/Categories')
     parser.add_argument('--bibs', action='store_true', help='Summary of Number Set Usage (aka bibs)')
     parser.add_argument('--landscape', action='store_true', help='Generate landscape PDF.')
-    parser.add_argument('--preliminary', '--preliminay', action='store_true', dest='preliminary',
-                        help='Mark PDFs as preliminary with a background watermark.')
+    parser.add_argument('--final', action='store_true',
+                        help='Mark PDFs as final (disable preliminary watermark).')
     parser.add_argument('--stderr', "--debug", action='store_true', help='Enable stderr output.')
     parser.add_argument("--stderrdup", action='store_true', help='Send stderr to stdout.')
     parser.add_argument("--crossmgr", "--cm", required=False, help="The RaceDB host for downloading files.")
@@ -369,12 +369,12 @@ def main():
         output_formats.append('pdf')
 
     landscape = args.landscape
-    preliminary = args.preliminary
+    final = args.final
 
     with AutoPagerEx(stderr=args.stderr, stderrdup=args.stderrdup, line_buffering=autopage.line_buffer_from_input()) as (sys.stdout, sys.stderr):
         try:
-            export_startlists(args.host, date=formatted_date, name=args.name, output_formats=output_formats, 
-                              racedb_host=args.crossmgr, landscape=landscape, preliminary=preliminary)
+            export_startlists(args.host, date=formatted_date, name=args.name, output_formats=output_formats,
+                              racedb_host=args.crossmgr, landscape=landscape, final=final)
         except Exception as e:
             print(f"An error occurred: {e}", file=sys.stderr)
             traceback.print_exc(file=sys.stderr)
