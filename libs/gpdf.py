@@ -504,7 +504,7 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
         styles = init_styles.copy()
         index = 1
         for i, (_, row) in enumerate(wave_df.iloc[:first_page_rows].iterrows()):
-            if not self.preliminary and i % 2 == 0:
+            if not watermark and i % 2 == 0:
                 row_idx = i + 1  # +1 to skip header row
                 styles.append(("BACKGROUND", (0, row_idx), (-1, row_idx), colors.whitesmoke))
             lc = ""
@@ -548,7 +548,7 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
             styles = init_styles.copy()
             # XXX Teams column is not getting truncated, a long team name gets printed overtop the Category column
             for i, (_, row) in enumerate(remaining_participants.iloc[:remaining_page_rows].iterrows()):
-                if not self.preliminary and i % 2 == 0:
+                if not watermark and i % 2 == 0:
                     row_idx = i + 1  # +1 to skip header row
                     styles.append(("BACKGROUND", (0, row_idx), (-1, row_idx), colors.whitesmoke))
                 lc = ""
