@@ -9,13 +9,14 @@ from libs.gpdf import generate_pdf, render_first_page
 
 
 class GenPDF:
-    def __init__(self, date, competition_name, competition_long_name, landscape=False, final=False):
+    def __init__(self, date, competition_name, competition_long_name, landscape=False, final=False, lap_abc=False):
         print('GenPDF:', date, competition_name, competition_long_name, file=sys.stdout)
         self.date = date
         self.competition_name = competition_name
         self.competition_long_name = competition_long_name
         self.landscape = landscape
         self.final = final
+        self.lap_abc = lap_abc
         self.events = {}
 
     def add_event(self, event_id, event_name, event_start_time):
@@ -251,7 +252,8 @@ class GenPDF:
             total_pages = len(sorted_events)
             page_num = 1
             for event_id, _ in sorted_events:
-                ok = self.render_first_page(event_id, csum, page_num, total_pages, landScape=self.landscape, category_bib_ranges=category_bib_ranges)
+                ok = self.render_first_page(event_id, csum, page_num, total_pages, landScape=self.landscape, 
+                                            category_bib_ranges=category_bib_ranges, lap_abc=self.lap_abc)
                 if ok:
                     page_num += 1
             csum.save()

@@ -9,8 +9,9 @@ from reportlab.platypus import Table, TableStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import Paragraph
+import traceback
 
-def draw_lapboard(c, width, height, df, bottom_limit_y, landScape=False):
+def draw_lapboard(c, width, height, df, bottom_limit_y, landScape=False, lap_abc=False):
     """Draw a 16:9 lapboard at the bottom of the page.
 
     - The board is anchored above the page bottom with a small margin.
@@ -24,8 +25,9 @@ def draw_lapboard(c, width, height, df, bottom_limit_y, landScape=False):
     bottom_margin = 40
     title_text = "Lap Board"
     title_font = "Helvetica-Bold"
-    title_font_size = 12
-    title_gap = 6  # space between title and board
+    title_font_size = 20
+    title_gap = 20  # space between title and board
+    waves_gap = 6  # space between title and board
 
     # Determine waves ordered by start offset if available to reflect race order
     if "Start Offset" in df.columns:
@@ -119,9 +121,10 @@ def draw_lapboard(c, width, height, df, bottom_limit_y, landScape=False):
         if minutes_sec is not None:
             title = f"{wave} : {minutes_sec}"
         # Truncate title to fit within window width
-        max_title_chars = max(1, int((window_w - 2 * pad_x) / (0.6 * 12)))
-        title_draw = title if len(title) <= max_title_chars else (title[:max_title_chars - 1] + "\u2026")
-        c.drawString(wx + pad_x, wy + window_h - pad_top - 12, title_draw)
+        if lap_abc:
+            max_title_chars = max(1, int((window_w - 2 * pad_x) / (0.6 * 12)))
+            title_draw = title if len(title) <= max_title_chars else (title[:max_title_chars - 1] + "\u2026")
+            c.drawString(wx + pad_x, wy + window_h - pad_top - 12, title_draw)
 
         # Collect categories for this wave
         cats = (
@@ -155,13 +158,23 @@ def draw_lapboard(c, width, height, df, bottom_limit_y, landScape=False):
             y -= line_h
 
         # Add window label (A, B, C, ...) at bottom-left of each window
-        c.setFont(label_font, label_font_size)
-        c.drawString(wx + pad_x, wy + 6, index_to_letters(idx))
+        if lap_abc:
+            print(f"Lapboard Window {idx}: Label '{index_to_letters(idx)}'", file=sys.stderr)
+            c.setFont(label_font, label_font_size)
+            c.drawString(wx + pad_x, wy + 6, index_to_letters(idx))
+        else:
+            #c.drawString(board_x, board_y + board_h + title_gap, title_text)
+            #c.drawString(wx + pad_x, wy + board_h + waves_gap, wave)
+            print(f"Lapboard Window {idx}: No label, lap_abc={lap_abc}", file=sys.stderr)
 
         # Add time marker at bottom-right of each window (e.g., 0:00)
         time_font_size = max(8, int(label_font_size * 0.8))
         c.setFont(label_font, time_font_size)
-        c.drawRightString(wx + window_w - pad_x, wy + 6, "0:00")
+        if lap_abc:
+            c.drawRightString(wx + window_w - pad_x, wy + 6, "0:00")
+        else:
+            print(f"Lapboard Window {idx}: minutes_sec='{minutes_sec}', lap_abc={lap_abc}", file=sys.stderr)
+            c.drawRightString(wx + window_w - pad_x, wy + 6, minutes_sec)
     # done
 
 
@@ -289,7 +302,7 @@ def truncate_text(text, max_length):
     """Truncate text to fit within max_length, adding '...' if necessary."""
     return text if len(text) <= max_length else text[:max_length-3] + "..."
 
-def render_first_page(self, event_id, c, page_num, total_pages, landScape=False, category_bib_ranges=None):
+def render_first_page(self, event_id, c, page_num, total_pages, landScape=False, category_bib_ranges=None, lap_abc=False):
     """Render only the first (title/summary) page for a given event onto an existing canvas.
 
     Draws header/footer, event title/time, wave summary table, total starters, and the lapboard graphic.
@@ -340,9 +353,10 @@ def render_first_page(self, event_id, c, page_num, total_pages, landScape=False,
 
     # Lapboard graphic under the table
     try:
-        draw_lapboard(c, width, height, df, bottom_limit_y=table_bottom_y - 10, landScape=landScape)
+        draw_lapboard(c, width, height, df, bottom_limit_y=table_bottom_y - 10, landScape=landScape, lap_abc=lap_abc)
     except Exception as e:
         print(f"Lapboard draw error (render_first_page): {e}", file=sys.stderr)
+        print(traceback.format_exc(), file=sys.stderr)
 
     c.showPage()
     return True

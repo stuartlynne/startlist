@@ -99,7 +99,7 @@ WHERE
     c.%s = '%s';
         """
 
-def export_startlists(host='localhost', date=None, name=None, output_formats=None, racedb_host=None, landscape=False, final=False):
+def export_startlists(host='localhost', date=None, name=None, output_formats=None, racedb_host=None, landscape=False, final=False, lap_abc=False):
     generators = []
 
     print('Output formats:', output_formats, file=sys.stderr)
@@ -148,7 +148,7 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
         if 'info' in output_formats:
             generators.append(GenInfo(racedb_host, date, competition_id, competition_long_name, ranges, bibs, ))
         if 'pdf' in output_formats:
-            generators.append(GenPDF(date, competition_name, competition_long_name, landscape=landscape, final=final, ))
+            generators.append(GenPDF(date, competition_name, competition_long_name, landscape=landscape, final=final, lap_abc=lap_abc)) 
         if 'xlsx' in output_formats:
             generators.append(GenXLSX(date, competition_name, competition_long_name))
         if generators == []:
@@ -341,6 +341,7 @@ def main():
     parser.add_argument('--audit', action='store_true', help='Generate audit xlsx, pre-reg vs day-of registration.')
     parser.add_argument('--info', action='store_true', help='Summary of Events/Waves/Categories')
     parser.add_argument('--bibs', action='store_true', help='Summary of Number Set Usage (aka bibs)')
+    parser.add_argument('--lap_abc', action='store_true', help='Show A/B/C in lapboard.')
     parser.add_argument('--landscape', action='store_true', help='Generate landscape PDF.')
     parser.add_argument('--final', action='store_true',
                         help='Mark PDFs as final (disable preliminary watermark).')
@@ -370,11 +371,12 @@ def main():
 
     landscape = args.landscape
     final = args.final
+    lap_abc = args.lap_abc
 
     with AutoPagerEx(stderr=args.stderr, stderrdup=args.stderrdup, line_buffering=autopage.line_buffer_from_input()) as (sys.stdout, sys.stderr):
         try:
             export_startlists(args.host, date=formatted_date, name=args.name, output_formats=output_formats,
-                              racedb_host=args.crossmgr, landscape=landscape, final=final)
+                              racedb_host=args.crossmgr, landscape=landscape, final=final, lap_abc=lap_abc)
         except Exception as e:
             print(f"An error occurred: {e}", file=sys.stderr)
             traceback.print_exc(file=sys.stderr)
