@@ -23,7 +23,7 @@ from startlist.genpdf import GenPDF
 from startlist.genttpdf import GenTTPDF
 from startlist.genttxlsx import GenTTXLSX
 
-__version__ = "0.5.16"
+__version__ = "0.5.17"
 
 
 def format_date(input_date):
