@@ -1,0 +1,260 @@
+from datetime import datetime, timedelta
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.lib.units import inch
+from reportlab.pdfgen import canvas
+
+
+def format_elapsed_time(value):
+    total_seconds = int(round(value or 0))
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+
+def detect_interval_seconds(participants):
+    start_times = sorted(
+        int(round(p.get("start_time") or 0))
+        for p in participants
+        if p.get("start_time") is not None
+    )
+    deltas = [
+        b - a for a, b in zip(start_times, start_times[1:])
+        if b > a
+    ]
+    if not deltas:
+        return 60
+    return min(deltas)
+
+
+class GenTTPDF:
+    def __init__(self, date, competition_name, competition_long_name, landscape=False, final=False):
+        self.date = date
+        self.competition_name = competition_name
+        self.competition_long_name = competition_long_name
+        self.landscape = landscape
+        self.final = final
+        self.events = {}
+
+    def add_event(self, event_id, event_name, event_start_time):
+        self.events[event_id] = {
+            'event_name': event_name,
+            'event_start_time': event_start_time,
+            'waves': {},
+            'participants': [],
+        }
+        self.event_id = event_id
+
+    def add_wave(self, event_id, wave_id, wave_name, start_offset, distance, laps, minutes, categories):
+        self.events[event_id]['waves'][wave_id] = {
+            'wave_name': wave_name,
+            'start_offset': start_offset,
+            'distance': distance,
+            'laps': laps,
+            'minutes': minutes,
+            'categories': categories,
+        }
+
+    def add_participant(self, event_id, wave_id, wave_name, participant_data):
+        self.events[self.event_id]['participants'].append(participant_data)
+
+    def should_watermark(self, event_start_time):
+        if self.final:
+            return False
+        if not isinstance(event_start_time, datetime):
+            return True
+        cutoff = event_start_time - timedelta(minutes=30)
+        return datetime.now() < cutoff
+
+    def draw_preliminary_watermark(self, c, width, height, enabled):
+        if not enabled:
+            return
+        c.saveState()
+        c.translate(width / 2.0, height / 2.0)
+        c.rotate(-45)
+        c.setFont("Helvetica-Bold", 90 if width > height else 108)
+        watermark_color = colors.Color(0.4, 0.4, 0.4, alpha=0.15)
+        c.setFillColor(watermark_color)
+        if hasattr(c, "setFillAlpha"):
+            c.setFillAlpha(0.15)
+        c.drawCentredString(0, 0, "NOT FINAL")
+        c.restoreState()
+
+    def build_slots(self, event):
+        participants = sorted(
+            event['participants'],
+            key=lambda p: (p.get('start_sequence', 999999), p.get('bib') or 0),
+        )
+        if not participants:
+            return [], 60
+
+        interval_seconds = detect_interval_seconds(participants)
+        max_start = max(int(round(p.get("start_time") or 0)) for p in participants)
+        extra_slots = max(10, 600 // max(interval_seconds, 1))
+        slot_times = list(range(0, max_start + interval_seconds * extra_slots + 1, interval_seconds))
+
+        participant_by_start = {
+            int(round(p.get("start_time") or 0)): p
+            for p in participants
+        }
+
+        slots = []
+        for start_time in slot_times:
+            participant = participant_by_start.get(start_time)
+            if participant:
+                clock = participant.get("scheduled_start_time")
+                clock_text = clock.strftime("%H:%M:%S") if clock else ""
+                slots.append({
+                    "Stopwatch": format_elapsed_time(start_time),
+                    "Bib": str(participant.get("bib") or ""),
+                    "LastName": str(participant.get("last_name") or ""),
+                    "FirstName": str(participant.get("first_name") or ""),
+                    "Notes/Delay": "",
+                    "Start Time": clock_text,
+                })
+            else:
+                event_start = event.get("event_start_time")
+                clock_text = ""
+                if event_start:
+                    clock_text = (event_start + timedelta(seconds=start_time)).strftime("%H:%M:%S")
+                slots.append({
+                    "Stopwatch": format_elapsed_time(start_time),
+                    "Bib": "",
+                    "LastName": "",
+                    "FirstName": "",
+                    "Notes/Delay": "",
+                    "Start Time": clock_text,
+                })
+        return slots, interval_seconds
+
+    def pad_slots_for_pages(self, slots, interval_seconds, rows_per_page, event_start_time):
+        if not slots:
+            return slots
+
+        remainder = len(slots) % rows_per_page
+        if remainder == 0:
+            return slots
+
+        extra_rows = rows_per_page - remainder
+        last_elapsed_seconds = (len(slots) - 1) * interval_seconds
+
+        for i in range(1, extra_rows + 1):
+            elapsed_seconds = last_elapsed_seconds + i * interval_seconds
+            clock_text = ""
+            if event_start_time:
+                clock_text = (event_start_time + timedelta(seconds=elapsed_seconds)).strftime("%H:%M:%S")
+            slots.append({
+                "Stopwatch": format_elapsed_time(elapsed_seconds),
+                "Bib": "",
+                "LastName": "",
+                "FirstName": "",
+                "Notes/Delay": "",
+                "Start Time": clock_text,
+            })
+
+        return slots
+
+    def save(self, category_bib_ranges=None):
+        for event_id, event in self.events.items():
+            if not event['participants']:
+                continue
+
+            generated_at = datetime.now()
+            event_start_time = event["event_start_time"].strftime("%H%M")
+            filename = f"{self.date}-{self.competition_name}-{event_start_time}-tt-startlist.pdf"
+            page_size = landscape(letter) if self.landscape else letter
+            width, height = page_size
+            c = canvas.Canvas(filename, pagesize=page_size)
+
+            slots, interval_seconds = self.build_slots(event)
+            rows_per_page = 30
+            slots = self.pad_slots_for_pages(slots, interval_seconds, rows_per_page, event["event_start_time"])
+            total_pages = (len(slots) + rows_per_page - 1) // rows_per_page
+            watermark = self.should_watermark(event["event_start_time"])
+
+            margin_left = 0.40 * inch
+            top_y = height - 0.63 * inch
+            bottom_y = 1.44 * inch
+            row_height = (top_y - bottom_y) / (rows_per_page + 1)
+            table_bottom_y = top_y - rows_per_page * row_height
+
+            columns = [
+                ("Stopwatch", 0.95 * inch),
+                ("Bib", 0.80 * inch),
+                ("LastName", 1.60 * inch),
+                ("FirstName", 1.60 * inch),
+                ("Notes/Delay", 1.70 * inch),
+                ("Start Time", 0.95 * inch),
+            ]
+
+            xs = [margin_left]
+            for _, col_width in columns:
+                xs.append(xs[-1] + col_width)
+
+            def draw_page_header(page_num):
+                self.draw_preliminary_watermark(c, width, height, watermark)
+                c.setFont("Helvetica-Bold", 8)
+                header_name = (
+                    f"RaceDB-{self.competition_name}-{event['event_name']}_"
+                    f"{self.date}-{event['event_start_time'].strftime('%H%M%S')}-"
+                    f"{generated_at.strftime('%Y-%m-%d-%H%M%S')}"
+                )
+                c.drawString(margin_left, height - 0.22 * inch, header_name)
+                c.drawString(width - 1.05 * inch, height - 0.22 * inch, f"Page {page_num}")
+                c.setFont("Helvetica", 8)
+                c.drawString(margin_left, height - 0.38 * inch, f"Generated: {generated_at.strftime('%Y-%m-%d %H:%M:%S')}")
+
+                c.setFont("Helvetica-Bold", 8)
+                for i, (title, _) in enumerate(columns):
+                    c.drawString(xs[i] + 2, top_y + 5, title)
+
+                c.setStrokeColor(colors.black)
+                for x in xs:
+                    c.line(x, top_y, x, table_bottom_y)
+                c.line(xs[0], top_y, xs[-1], top_y)
+
+                c.setFont("Helvetica-Bold", 8)
+                c.drawString(margin_left + 0.2 * inch, 0.62 * inch, 'Notes: __________________________________________________________________________________________')
+                c.drawString(margin_left + 0.2 * inch, 0.38 * inch, '________________________________________________________________________________________________')
+                c.drawString(margin_left + 0.2 * inch, 0.12 * inch, 'Starter: _______________________________________________   Actual Start Time: __________________')
+
+            def draw_row(index, row):
+                y = top_y - (index + 1) * row_height
+                c.line(xs[0], y, xs[-1], y)
+
+                values = [
+                    row["Stopwatch"],
+                    row["Bib"],
+                    row["LastName"],
+                    row["FirstName"],
+                    row["Notes/Delay"],
+                    row["Start Time"],
+                ]
+                fonts = [
+                    ("Helvetica", 16),
+                    ("Helvetica", 16),
+                    ("Helvetica", 16),
+                    ("Helvetica", 16),
+                    ("Helvetica", 14),
+                    ("Helvetica", 16),
+                ]
+
+                for i, value in enumerate(values):
+                    font_name, font_size = fonts[i]
+                    c.setFont(font_name, font_size)
+                    c.drawString(xs[i] + 2, y + row_height / 2 - 0.11 * inch, str(value))
+
+            for page_num in range(total_pages):
+                if page_num:
+                    c.showPage()
+                draw_page_header(page_num + 1)
+                page_rows = slots[page_num * rows_per_page:(page_num + 1) * rows_per_page]
+                for row_index, row in enumerate(page_rows):
+                    draw_row(row_index, row)
+                c.line(xs[0], table_bottom_y, xs[-1], table_bottom_y)
+
+            c.save()
+            print(f"Generated TT PDF: {filename} interval={interval_seconds}s rows={len(slots)}")
+
+        return "TT PDF files generated."
