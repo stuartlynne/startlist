@@ -20,6 +20,8 @@ from startlist.genaudit import GenAudit
 from startlist.genbibs import GenBibs
 from startlist.geninfo import GenInfo
 from startlist.genpdf import GenPDF
+from startlist.genttpdf import GenTTPDF
+from startlist.genttxlsx import GenTTXLSX
 
 __version__ = "0.5.16"
 
@@ -99,6 +101,103 @@ WHERE
     c.%s = '%s';
         """
 
+tt_competition_query = """
+SELECT
+    c.id AS competition_id,
+    c.name AS competition_name,
+    c.long_name AS competition_long_name,
+    e.id AS event_id,
+    e.name AS event_name,
+    e.date_time AS event_start_time,
+    w.id AS wave_id,
+    w.name AS wave_name,
+    w.gap_before_wave AS start_offset,
+    w.distance,
+    w.laps,
+    NULL::smallint AS minutes
+FROM
+    core_competition c
+JOIN
+    core_eventtt e ON e.competition_id = c.id
+LEFT JOIN
+    core_wavett w ON w.event_id = e.id
+WHERE
+    c.%s = '%s'
+ORDER BY
+    e.date_time,
+    w.sequence NULLS LAST,
+    w.id;
+        """
+
+tt_participants_query = """
+SELECT
+    e.id AS event_id,
+    e.name AS event_name,
+    e.date_time AS event_start_time,
+    wc.wave_id,
+    wc.wave_name,
+    wc.wave_sequence,
+    cat.id AS category_id,
+    cat.code AS category_code,
+    cat.gender AS category_gender,
+    cat.description AS category_description,
+    p.id AS participant_id,
+    lh.first_name,
+    lh.last_name,
+    lh.date_of_birth,
+    lh.city,
+    lh.state_prov,
+    lh.nation_code,
+    lh.license_code,
+    p.bib,
+    p.tag,
+    p.tag2,
+    lh.uci_id,
+    t.name AS team_name,
+    p.preregistered,
+    p.registration_timestamp,
+    p.tag_checked,
+    p.license_checked,
+    p.paid,
+    p.confirmed,
+    ett.start_sequence,
+    ett.start_time,
+    e.date_time + (ett.start_time * interval '1 second') AS scheduled_start_time
+FROM
+    core_eventtt e
+JOIN
+    core_entrytt ett ON ett.event_id = e.id
+JOIN
+    core_participant p ON p.id = ett.participant_id
+LEFT JOIN
+    core_licenseholder lh ON lh.id = p.license_holder_id
+LEFT JOIN
+    core_team t ON t.id = p.team_id
+LEFT JOIN
+    core_category cat ON cat.id = p.category_id
+LEFT JOIN
+    (
+        SELECT
+            w.id AS wave_id,
+            w.name AS wave_name,
+            w.sequence AS wave_sequence,
+            w.event_id,
+            wtc.category_id
+        FROM
+            core_wavett w
+        JOIN
+            core_wavett_categories wtc ON wtc.wavett_id = w.id
+    ) wc ON wc.event_id = e.id AND wc.category_id = p.category_id
+WHERE
+    e.id = %s
+ORDER BY
+    COALESCE(wc.wave_sequence, 9999),
+    ett.start_sequence,
+    ett.start_time,
+    lh.last_name,
+    lh.first_name;
+        """
+
 def export_startlists(host='localhost', date=None, name=None, output_formats=None, racedb_host=None, landscape=False, final=False, lap_abc=False):
     generators = []
 
@@ -109,6 +208,19 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
         # get competition id based on date or name
         conn, cur, competition_id, competition_name, competition_long_name, competition_start_date, number_set_id = find_competition(host, name, date) 
         print(f"Competition found: {competition_id, competition_name, competition_long_name, competition_start_date, number_set_id}", file=sys.stderr)
+        cur_execute(
+            f'Get competition details {competition_id}',
+            cur,
+            """
+                SELECT organizer, city, "stateProv", country
+                FROM core_competition
+                WHERE id = %s;
+            """,
+            [competition_id],
+            debug=debug,
+        )
+        competition_details = cur.fetchone() or ("", "", "", "")
+        competition_organizer, competition_city, competition_state_prov, competition_country = competition_details
 
         if set(["html", "info", "bibs", "pdf", ]) & set(output_formats):
             # Query to find the bib ranges for each category in the wave
@@ -137,6 +249,8 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
             #print(f"bibs {bibs}", file=sys.stderr)
 
 
+        tt_generators = []
+
         if 'html' in output_formats:
             generators.append(GenHTML(host, competition_name, date, ranges, ))
         if 'cm' in output_formats:
@@ -151,6 +265,20 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
             generators.append(GenPDF(date, competition_name, competition_long_name, landscape=landscape, final=final, lap_abc=lap_abc)) 
         if 'xlsx' in output_formats:
             generators.append(GenXLSX(date, competition_name, competition_long_name))
+        if 'pdf' in output_formats:
+            tt_generators.append(GenTTPDF(date, competition_name, competition_long_name, landscape=landscape, final=final))
+        if 'cm' in output_formats:
+            tt_generators.append(
+                GenTTXLSX(
+                    date,
+                    competition_name,
+                    competition_long_name,
+                    organizer=competition_organizer,
+                    city=competition_city,
+                    state_prov=competition_state_prov,
+                    country=competition_country,
+                )
+            )
         if generators == []:
             print(f"Invalid output format: {output_formats}", file=sys.stderr)
             exit(1)
@@ -274,6 +402,134 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
                         for generator in generators:
                             generator.add_participant(None, wave_id, wave_name, formatted_participant)
 
+            # Query to find time trial events and waves for the same competition.
+            if name:
+                cur_execute(f'Find TT competition events and waves by name {name}', cur, tt_competition_query % ('name', name,), None, debug=False)
+            else:
+                cur_execute(f'Find TT competition events and waves by date {date}', cur, tt_competition_query % ('start_date', date,), None, debug=True)
+
+            tt_waves = cur.fetchall()
+            if tt_waves:
+                print(f"TT events and waves found: {len(tt_waves)} rows", file=sys.stderr)
+                tt_event_ids = []
+                for tt_wave in tt_waves:
+                    (
+                        tt_competition_id,
+                        tt_competition_name,
+                        tt_competition_long_name,
+                        tt_event_id,
+                        tt_event_name,
+                        tt_event_start_time,
+                        tt_wave_id,
+                        tt_wave_name,
+                        tt_start_offset,
+                        tt_distance,
+                        tt_laps,
+                        tt_minutes,
+                    ) = tt_wave
+
+                    tt_event_start_time = remove_tzinfo(tt_event_start_time)
+                    tt_event_start_time = normalize_event_time(tt_event_name, tt_event_start_time)
+                    print(
+                        f"TT wave found: "
+                        f"{(tt_event_id, tt_event_name, tt_event_start_time, tt_wave_id, tt_wave_name, tt_start_offset, tt_distance, tt_laps, tt_minutes)}",
+                        file=sys.stderr,
+                    )
+                    if tt_event_id not in tt_event_ids:
+                        tt_event_ids.append(tt_event_id)
+                        for generator in tt_generators:
+                            generator.add_event(tt_event_id, tt_event_name, tt_event_start_time)
+                    for generator in tt_generators:
+                        generator.add_wave(tt_event_id, tt_wave_id, tt_wave_name, tt_start_offset, tt_distance, tt_laps, tt_minutes, [])
+
+                for tt_event_id in tt_event_ids:
+                    cur_execute(
+                        f'Get TT participants for event {tt_event_id}',
+                        cur,
+                        tt_participants_query,
+                        (tt_event_id,),
+                        debug=debug,
+                    )
+                    tt_participants = cur.fetchall()
+                    print(f"TT participants for event {tt_event_id}: {len(tt_participants)} rows", file=sys.stderr)
+                    for tt_participant in tt_participants:
+                        (
+                            _event_id,
+                            _event_name,
+                            _event_start_time,
+                            _wave_id,
+                            _wave_name,
+                            _wave_sequence,
+                            _category_id,
+                            _category_code,
+                            _category_gender,
+                            _category_description,
+                            _participant_id,
+                            _first_name,
+                            _last_name,
+                            _date_of_birth,
+                            _city,
+                            _state_prov,
+                            _nation_code,
+                            _license_code,
+                            _bib,
+                            _tag,
+                            _tag2,
+                            _uci_id,
+                            _team_name,
+                            _preregistered,
+                            _registration_timestamp,
+                            _tag_checked,
+                            _license_checked,
+                            _paid,
+                            _confirmed,
+                            _start_sequence,
+                            _start_time,
+                            _scheduled_start_time,
+                        ) = tt_participant
+
+                        scheduled_start_time = remove_tzinfo(_scheduled_start_time)
+                        print(
+                            "TT participant: "
+                            f"event={_event_name!r} wave={_wave_name!r} "
+                            f"start_sequence={_start_sequence} start_time={_start_time} "
+                            f"scheduled_start_time={scheduled_start_time!r} "
+                            f"bib={_bib} name={_last_name!r}, {_first_name!r} "
+                            f"category={_category_code!r} team={_team_name!r}",
+                            file=sys.stderr,
+                        )
+                        formatted_tt_participant = {
+                            'bib': _bib,
+                            'first_name': _first_name,
+                            'last_name': _last_name,
+                            'team_name': _team_name,
+                            'category_code': _category_code,
+                            'category_gender': _category_gender,
+                            'gender': ['Men', 'Women', 'Open'][_category_gender],
+                            'date_of_birth': _date_of_birth,
+                            'city': _city,
+                            'state_prov': _state_prov,
+                            'nation_code': _nation_code,
+                            'license_code': _license_code,
+                            'tag': _tag,
+                            'tag2': _tag2,
+                            'uci_id': _uci_id,
+                            'preregistered': _preregistered,
+                            'registration_timestamp': _registration_timestamp,
+                            'tag_checked': _tag_checked,
+                            'license_checked': _license_checked,
+                            'paid': _paid,
+                            'confirmed': _confirmed,
+                            'start_sequence': _start_sequence,
+                            'start_time': _start_time,
+                            'scheduled_start_time': scheduled_start_time,
+                            'wave_name': _wave_name,
+                        }
+                        for generator in tt_generators:
+                            generator.add_participant(tt_event_id, _wave_id, _wave_name, formatted_tt_participant)
+            else:
+                print(f"No TT competition events and waves found for {name or date}.", file=sys.stderr)
+
 
         category_bib_ranges = {}
         # Convert bibs per category into summarized ranges
@@ -290,6 +546,9 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
         # Save the generated file
         print(f"{len(generators)} generators: {generators}", file=sys.stderr)
         for generator in generators:
+            output_filename = generator.save(category_bib_ranges=category_bib_ranges)
+        print(f"{len(tt_generators)} TT generators: {tt_generators}", file=sys.stderr)
+        for generator in tt_generators:
             output_filename = generator.save(category_bib_ranges=category_bib_ranges)
         #print(f"File generated: {output_filename}", file=sys.stderr)
 
