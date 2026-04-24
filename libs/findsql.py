@@ -74,12 +74,33 @@ def find_competition(host, name=None, date=None, category_format=None):
         # Connect to PostgreSQL database
         conn, cur = connect_db(host)
 
-        if name:
-            competition_query = "SELECT id, name, long_name, start_date, number_set_id FROM core_competition WHERE name = %s;"
-            cur_execute(f'Find competition by name {name}', cur, competition_query,  (name,), debug=False)
-        elif date:
-            competition_query = "SELECT id, name, long_name, start_date, number_set_id FROM core_competition WHERE start_date = %s;"
-            cur_execute(f'Find competition by date {date}', cur, competition_query, (date,), debug=True)
+        if name or date:
+            where_clauses = []
+            params = []
+            if name:
+                where_clauses.append("name = %s")
+                params.append(name)
+            if date:
+                where_clauses.append("start_date = %s")
+                params.append(date)
+
+            competition_query = (
+                "SELECT id, name, long_name, start_date, number_set_id "
+                "FROM core_competition "
+                f"WHERE {' AND '.join(where_clauses)};"
+            )
+            query_desc = []
+            if name:
+                query_desc.append(f"name {name}")
+            if date:
+                query_desc.append(f"date {date}")
+            cur_execute(
+                f"Find competition by {' and '.join(query_desc)}",
+                cur,
+                competition_query,
+                tuple(params),
+                debug=bool(date),
+            )
         elif category_format:
             cur_execute(f'Find competition by category format {category_format}', cur, competition_query_by_category, (category_format,), debug=True)
         else:
@@ -88,7 +109,14 @@ def find_competition(host, name=None, date=None, category_format=None):
         
         competition = cur.fetchone()
         if not competition:
-             print(f"No competition found for {name or date}.", file=sys.stderr)
+             filters = ", ".join(
+                 part for part in [
+                     f"name={name}" if name else "",
+                     f"date={date}" if date else "",
+                     f"category_format={category_format}" if category_format else "",
+                 ] if part
+             )
+             print(f"No competition found for {filters}.", file=sys.stderr)
              return
         competition_id, competition_name, competition_long_name, competition_start_date, number_set_id = competition
         print(f"Competition found: {competition}", file=sys.stderr)

@@ -4,6 +4,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas
+from .filename import sanitize_filename_part
 
 
 def format_elapsed_time(value):
@@ -162,7 +163,8 @@ class GenTTPDF:
 
             generated_at = datetime.now()
             event_start_time = event["event_start_time"].strftime("%H%M")
-            filename = f"{self.date}-{self.competition_name}-{event_start_time}-tt-startlist.pdf"
+            competition_slug = sanitize_filename_part(self.competition_name)
+            filename = f"{self.date}-{competition_slug}-{event_start_time}-tt-startlist.pdf"
             page_size = landscape(letter) if self.landscape else letter
             width, height = page_size
             c = canvas.Canvas(filename, pagesize=page_size)
@@ -196,7 +198,7 @@ class GenTTPDF:
                 self.draw_preliminary_watermark(c, width, height, watermark)
                 c.setFont("Helvetica-Bold", 8)
                 header_name = (
-                    f"RaceDB-{self.competition_name}-{event['event_name']}_"
+                    f"RaceDB-{sanitize_filename_part(self.competition_name, compact=True)}-{sanitize_filename_part(event['event_name'])}_"
                     f"{self.date}-{event['event_start_time'].strftime('%H%M%S')}-"
                     f"{generated_at.strftime('%Y-%m-%d-%H%M%S')}"
                 )

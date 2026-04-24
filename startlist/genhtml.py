@@ -14,6 +14,7 @@ from .reload import reload
 from .toggle import toggle
 
 from .css import css
+from .filename import sanitize_filename_part
 
 class GenHTML:
 
@@ -60,7 +61,8 @@ class GenHTML:
         self.left = GenLeft(self, self.doc, self.tag, self.text)
         self.right = GenRight(self, self.doc, self.tag, self.text)
 
-        self.output_filename = f"{self.competition_date}-{self.competition_name.replace(' ', '_')}-startlist.html"
+        competition_slug = sanitize_filename_part(self.competition_name)
+        self.output_filename = f"{self.competition_date}-{competition_slug}-startlist.html"
 
         # Store event, wave, and participant data
         self.data = {}

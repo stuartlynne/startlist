@@ -4,7 +4,7 @@ import psycopg2
 import re
 from psycopg2.extras import DictCursor
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from autopage import argparse
 import autopage
@@ -23,7 +23,7 @@ from startlist.genpdf import GenPDF
 from startlist.genttpdf import GenTTPDF
 from startlist.genttxlsx import GenTTXLSX
 
-__version__ = "0.5.18"
+__version__ = "0.5.19"
 
 
 def format_date(input_date):
@@ -198,6 +198,147 @@ ORDER BY
     lh.first_name;
         """
 
+tt_fallback_participants_query = """
+SELECT
+    e.id AS event_id,
+    e.name AS event_name,
+    e.date_time AS event_start_time,
+    w.id AS wave_id,
+    w.name AS wave_name,
+    w.sequence AS wave_sequence,
+    w.gap_before_wave,
+    w.regular_start_gap,
+    cat.id AS category_id,
+    cat.code AS category_code,
+    cat.gender AS category_gender,
+    cat.description AS category_description,
+    p.id AS participant_id,
+    lh.first_name,
+    lh.last_name,
+    lh.date_of_birth,
+    lh.city,
+    lh.state_prov,
+    lh.nation_code,
+    lh.license_code,
+    p.bib,
+    p.tag,
+    p.tag2,
+    lh.uci_id,
+    t.name AS team_name,
+    p.preregistered,
+    p.registration_timestamp,
+    p.tag_checked,
+    p.license_checked,
+    p.paid,
+    p.confirmed
+FROM
+    core_eventtt e
+JOIN
+    core_wavett w ON w.event_id = e.id
+JOIN
+    core_wavett_categories wtc ON wtc.wavett_id = w.id
+JOIN
+    core_category cat ON cat.id = wtc.category_id
+JOIN
+    core_participant p ON p.competition_id = e.competition_id AND p.category_id = cat.id
+LEFT JOIN
+    core_licenseholder lh ON lh.id = p.license_holder_id
+LEFT JOIN
+    core_team t ON t.id = p.team_id
+WHERE
+    e.id = %s
+ORDER BY
+    w.sequence NULLS LAST,
+    p.registration_timestamp,
+    p.bib,
+    lh.last_name,
+    lh.first_name;
+        """
+
+
+def synthesize_tt_entries(tt_rows):
+    """Build synthetic TT entries when core_entrytt has not been populated yet."""
+    if not tt_rows:
+        return []
+
+    grouped_rows = {}
+    ordered_waves = []
+    for row in tt_rows:
+        wave_id = row[3]
+        if wave_id not in grouped_rows:
+            ordered_waves.append(
+                {
+                    'wave_id': wave_id,
+                    'wave_name': row[4],
+                    'wave_sequence': row[5],
+                    'gap_before_wave': row[6] or 0,
+                    'regular_start_gap': row[7] or 60,
+                }
+            )
+            grouped_rows[wave_id] = []
+        grouped_rows[wave_id].append(row)
+
+    synthetic_rows = []
+    start_sequence = 1
+    current_start_time = None
+
+    for wave in ordered_waves:
+        wave_id = wave['wave_id']
+        wave_rows = grouped_rows.get(wave_id, [])
+        if current_start_time is None:
+            current_start_time = wave['gap_before_wave']
+        else:
+            current_start_time += wave['gap_before_wave']
+
+        for index, row in enumerate(wave_rows):
+            if index:
+                current_start_time += wave['regular_start_gap']
+
+            event_start_time = row[2]
+            scheduled_start_time = None
+            if event_start_time is not None:
+                scheduled_start_time = event_start_time + timedelta(seconds=current_start_time)
+
+            synthetic_rows.append(
+                (
+                    row[0],   # event_id
+                    row[1],   # event_name
+                    row[2],   # event_start_time
+                    row[3],   # wave_id
+                    row[4],   # wave_name
+                    row[5],   # wave_sequence
+                    row[8],   # category_id
+                    row[9],   # category_code
+                    row[10],  # category_gender
+                    row[11],  # category_description
+                    row[12],  # participant_id
+                    row[13],  # first_name
+                    row[14],  # last_name
+                    row[15],  # date_of_birth
+                    row[16],  # city
+                    row[17],  # state_prov
+                    row[18],  # nation_code
+                    row[19],  # license_code
+                    row[20],  # bib
+                    row[21],  # tag
+                    row[22],  # tag2
+                    row[23],  # uci_id
+                    row[24],  # team_name
+                    row[25],  # preregistered
+                    row[26],  # registration_timestamp
+                    row[27],  # tag_checked
+                    row[28],  # license_checked
+                    row[29],  # paid
+                    row[30],  # confirmed
+                    start_sequence,
+                    float(current_start_time),
+                    scheduled_start_time,
+                )
+            )
+            start_sequence += 1
+
+    return synthetic_rows
+
 def export_startlists(host='localhost', date=None, name=None, output_formats=None, racedb_host=None, landscape=False, final=False, lap_abc=False):
     generators = []
 
@@ -285,20 +426,26 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
 
         # Dictionary to accumulate bib numbers per category
         category_bibs = {}
+        has_mass_start_events = False
+        has_tt_events = False
 
         if set(["pdf", "xlsx", "html", "audit", "info", "cm", ]) & set(output_formats):
 
-            # Query to find the competition events and waves
-            if name:
-                cur_execute(f'Find competition events and waves by name {name}', cur, full_competition_query % ('name', name,), None, debug=False)
-            else:
-                cur_execute(f'Find competition events and waves by date {date}', cur, full_competition_query % ('start_date', date,), None, debug=True)
+            # Query to find the competition mass-start events and waves.
+            cur_execute(
+                f'Find competition events and waves by competition id {competition_id}',
+                cur,
+                full_competition_query % ('id', competition_id,),
+                None,
+                debug=True,
+            )
             
             #competition = cur.fetchone()
             waves = cur.fetchall()
             if not waves:
-                print(f"No competition events and waves found for {name or date}.", file=sys.stderr)
-                return
+                print(f"No mass-start competition events and waves found for competition {competition_id}.", file=sys.stderr)
+            else:
+                has_mass_start_events = True
 
             last_event_id = None
             tz_env = os.environ.get("TZ", "")
@@ -403,13 +550,17 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
                             generator.add_participant(None, wave_id, wave_name, formatted_participant)
 
             # Query to find time trial events and waves for the same competition.
-            if name:
-                cur_execute(f'Find TT competition events and waves by name {name}', cur, tt_competition_query % ('name', name,), None, debug=False)
-            else:
-                cur_execute(f'Find TT competition events and waves by date {date}', cur, tt_competition_query % ('start_date', date,), None, debug=True)
+            cur_execute(
+                f'Find TT competition events and waves by competition id {competition_id}',
+                cur,
+                tt_competition_query % ('id', competition_id,),
+                None,
+                debug=True,
+            )
 
             tt_waves = cur.fetchall()
             if tt_waves:
+                has_tt_events = True
                 print(f"TT events and waves found: {len(tt_waves)} rows", file=sys.stderr)
                 tt_event_ids = []
                 for tt_wave in tt_waves:
@@ -439,8 +590,15 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
                         tt_event_ids.append(tt_event_id)
                         for generator in tt_generators:
                             generator.add_event(tt_event_id, tt_event_name, tt_event_start_time)
+                    cur_execute(f'Get TT wave categories {tt_wave_id}', cur, """
+                        SELECT c.id, c.code, c.gender, c.description
+                        FROM core_wavett_categories wcat
+                        JOIN core_category c ON wcat.category_id = c.id
+                        WHERE wcat.wavett_id = %s;
+                    """, (tt_wave_id,), debug=debug)
+                    tt_categories = cur.fetchall()
                     for generator in tt_generators:
-                        generator.add_wave(tt_event_id, tt_wave_id, tt_wave_name, tt_start_offset, tt_distance, tt_laps, tt_minutes, [])
+                        generator.add_wave(tt_event_id, tt_wave_id, tt_wave_name, tt_start_offset, tt_distance, tt_laps, tt_minutes, tt_categories)
 
                 for tt_event_id in tt_event_ids:
                     cur_execute(
@@ -452,6 +610,24 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
                     )
                     tt_participants = cur.fetchall()
                     print(f"TT participants for event {tt_event_id}: {len(tt_participants)} rows", file=sys.stderr)
+                    if not tt_participants:
+                        cur_execute(
+                            f'Get fallback TT participants for event {tt_event_id}',
+                            cur,
+                            tt_fallback_participants_query,
+                            (tt_event_id,),
+                            debug=debug,
+                        )
+                        fallback_tt_rows = cur.fetchall()
+                        print(
+                            f"Fallback TT participant rows for event {tt_event_id}: {len(fallback_tt_rows)} rows",
+                            file=sys.stderr,
+                        )
+                        tt_participants = synthesize_tt_entries(fallback_tt_rows)
+                        print(
+                            f"Synthesized TT participants for event {tt_event_id}: {len(tt_participants)} rows",
+                            file=sys.stderr,
+                        )
                     for tt_participant in tt_participants:
                         (
                             _event_id,
@@ -544,11 +720,14 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
 
 
         # Save the generated file
-        print(f"{len(generators)} generators: {generators}", file=sys.stderr)
-        for generator in generators:
+        active_generators = generators if has_mass_start_events else []
+        active_tt_generators = tt_generators if has_tt_events else []
+
+        print(f"{len(active_generators)} active generators: {active_generators}", file=sys.stderr)
+        for generator in active_generators:
             output_filename = generator.save(category_bib_ranges=category_bib_ranges)
-        print(f"{len(tt_generators)} TT generators: {tt_generators}", file=sys.stderr)
-        for generator in tt_generators:
+        print(f"{len(active_tt_generators)} active TT generators: {active_tt_generators}", file=sys.stderr)
+        for generator in active_tt_generators:
             output_filename = generator.save(category_bib_ranges=category_bib_ranges)
         #print(f"File generated: {output_filename}", file=sys.stderr)
 

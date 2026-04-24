@@ -7,6 +7,7 @@ import requests
 import openpyxl
 from datetime import datetime
 from urllib.parse import urljoin
+from .filename import sanitize_filename_part
 
 class GenCM:
     def __init__(self, racedb_host, date, competition_id, competition_name):
@@ -40,11 +41,12 @@ class GenCM:
                 #file_name = f"{self.date}-{self.competition_name.replace(' ', '_')}_{i}.xlsx"
                 #file_name = f"{self.date}-{event_name.replace(' ', '_')}.xlsx"
                 #file_name = f"{self.date}-{self.competition_name.replace(' ', '_')}_{event_name.replace('/','_').replace(' ','_')}-r{i}.xlsx"
-                file_name = f"{self.date}-{self.competition_name.replace(' ', '_')}-{event_name.replace('/','_')}.xlsx"
+                competition_slug = sanitize_filename_part(self.competition_name, compact=True)
+                event_slug = sanitize_filename_part(event_name)
+                file_name = f"{self.date}-{competition_slug}-{event_slug}.xlsx"
                 with open(file_name, "wb") as file:
                     file.write(response.content)
                 print(f"Downloaded event {event_id} as {file_name}", file=sys.stdout)
             else:
                 print(f"Failed to download event {self.event_id} from {url}", file=sys.stdout)
-
 

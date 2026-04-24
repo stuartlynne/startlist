@@ -3,6 +3,7 @@ from datetime import time
 import pandas as pd
 
 from libs.getranges import get_ranges
+from .filename import sanitize_filename_part
 
 
 def seconds_to_time(value):
@@ -48,13 +49,11 @@ class GenTTXLSX:
 
     def save(self, category_bib_ranges=None):
         for event_id, event in self.events.items():
-            if not event['participants']:
-                continue
-
-            event_name = event["event_name"].replace(":", "").replace("/", "_")
+            event_name = sanitize_filename_part(event["event_name"])
             event_start_time = event["event_start_time"].strftime("%H%M")
-            # filename = f"{self.date}-{self.competition_name.replace(' ', '')}-{event_name}.xlsx"
-            filename = f"{self.date}-{self.competition_name.replace(' ', '')}-{event_start_time}.xlsx"
+            competition_slug = sanitize_filename_part(self.competition_name, compact=True)
+            # filename = f"{self.date}-{competition_slug}-{event_name}.xlsx"
+            filename = f"{self.date}-{competition_slug}-{event_start_time}.xlsx"
             writer = pd.ExcelWriter(filename, engine='xlsxwriter')
             workbook = writer.book
 
@@ -124,6 +123,18 @@ class GenTTXLSX:
                 for participant in wave_participants:
                     key = (participant.get('category_code', ''), participant.get('gender', 'Open'))
                     category_groups.setdefault(key, []).append(participant.get('bib'))
+
+                if not category_groups:
+                    for category in wave.get("categories", []):
+                        if len(category) >= 3:
+                            _, category_name, category_gender = category[:3]
+                            gender = ['Men', 'Women', 'Open'][category_gender]
+                        elif len(category) >= 2:
+                            _, category_name = category[:2]
+                            gender = 'Open'
+                        else:
+                            continue
+                        category_groups.setdefault((category_name, gender), [])
 
                 for (category_name, gender), bibs in sorted(category_groups.items()):
                     clean_bibs = [b for b in bibs if isinstance(b, int)]

@@ -1,0 +1,11 @@
+	@echo teams finished
+
+RACE_DIR := $(notdir $(CURDIR))
+DATE := $(shell printf '%s\n' "$(RACE_DIR)" | sed -E 's/^([0-9]{8}).*/\1/')
+NAME := $(shell printf '%s\n' "$(RACE_DIR)" | sed -E 's/^[0-9]{8}-?//')
+
+startlists:
+	startlist --crossmgr racedb.wimsey.online --host racedb.wg --date $(DATE) --name "$(NAME)"
+	startlist --html --pdf --host racedb.wg --date $(DATE) --name "$(NAME)"
+audit:
+	startlist --audit --host racedb.wg --date $(DATE) --name "$(NAME)"

@@ -2,6 +2,7 @@ import sys
 import pandas as pd
 import os
 import sys
+from .filename import sanitize_filename_part
 
 class GenXLSX:
     def __init__(self, date, competition_name, competition_long_name):
@@ -57,8 +58,11 @@ class GenXLSX:
     def save(self, category_bib_ranges=None):
         """ Saves each event as a separate XLSX file with column widths. """
         for event_id, event in self.events.items():
-            event_name = event["event_name"].replace(" ", "_").replace(':','').replace('_AM','').replace('_PM','')
-            filename = f"{self.date}-{self.competition_name.replace(' ','_')}-{event_name}-startlist.xlsx"
+            event_name = sanitize_filename_part(
+                event["event_name"].replace('_AM', '').replace('_PM', '')
+            )
+            competition_slug = sanitize_filename_part(self.competition_name)
+            filename = f"{self.date}-{competition_slug}-{event_name}-startlist.xlsx"
             writer = pd.ExcelWriter(filename, engine='xlsxwriter')
             header_format = writer.book.add_format({'text_wrap': True, 'bold': True, 'font_size': 12})
             team_format = writer.book.add_format({'text_wrap': True, 'font_size': 12})

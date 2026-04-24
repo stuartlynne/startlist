@@ -6,6 +6,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.platypus import Table, TableStyle
 from libs.gpdf import generate_pdf, render_first_page
+from .filename import sanitize_filename_part
 
 
 class GenPDF:
@@ -233,7 +234,8 @@ class GenPDF:
             event_start_time = event["event_start_time"].strftime("%H%M")  # Format HHMM
 
             # Generate filename: {date}-{competition_name}-{starttime}.pdf
-            filename = f"{self.date}-{self.competition_name.replace(' ', '_')}-{event_start_time}-startlist.pdf"
+            competition_slug = sanitize_filename_part(self.competition_name)
+            filename = f"{self.date}-{competition_slug}-{event_start_time}-startlist.pdf"
 
             # Generate a PDF for this event
             print(f"Generating PDF: {filename}", file=sys.stderr)
@@ -243,7 +245,8 @@ class GenPDF:
         # Generate a competition summary PDF comprised of the first page from each event
         try:
             # Summary name: YYYY-MM-DD-RaceName-summary.pdf
-            summary_filename = f"{self.date}-{self.competition_name.replace(' ', '_')}-summary.pdf"
+            competition_slug = sanitize_filename_part(self.competition_name)
+            summary_filename = f"{self.date}-{competition_slug}-summary.pdf"
             pagesize = landscape(letter) if self.landscape else letter
             csum = canvas.Canvas(summary_filename, pagesize=pagesize)
 

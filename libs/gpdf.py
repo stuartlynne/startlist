@@ -351,12 +351,22 @@ def render_first_page(self, event_id, c, page_num, total_pages, landScape=False,
     c.setFont("Helvetica", 20)
     c.drawString(50, height - 180, f"Total Starters: {total_starts}")
 
-    # Lapboard graphic under the table
-    try:
-        draw_lapboard(c, width, height, df, bottom_limit_y=table_bottom_y - 10, landScape=landScape, lap_abc=lap_abc)
-    except Exception as e:
-        print(f"Lapboard draw error (render_first_page): {e}", file=sys.stderr)
-        print(traceback.format_exc(), file=sys.stderr)
+    # Skip the lapboard when an event has too many categories to display cleanly.
+    category_count = 0
+    if "Category" in df.columns:
+        category_count = df["Category"].dropna().astype(str).nunique()
+
+    if category_count > 6:
+        print(
+            f"Skipping lapboard for event {event_id}: {category_count} categories exceeds limit of 6.",
+            file=sys.stderr,
+        )
+    else:
+        try:
+            draw_lapboard(c, width, height, df, bottom_limit_y=table_bottom_y - 10, landScape=landScape, lap_abc=lap_abc)
+        except Exception as e:
+            print(f"Lapboard draw error (render_first_page): {e}", file=sys.stderr)
+            print(traceback.format_exc(), file=sys.stderr)
 
     c.showPage()
     return True
@@ -446,10 +456,20 @@ def generate_pdf(self, event_id, pdf_filename, landScape=False, category_bib_ran
     c.drawString(50, height - 180, f"Total Starters: {total_starts}")
 
     # **Lapboard graphic (16:9) below summary table**
-    try:
-        draw_lapboard(c, width, height, df, bottom_limit_y=table_bottom_y - 10, landScape=landScape)
-    except Exception as e:
-        print(f"Lapboard draw error: {e}", file=sys.stderr)
+    category_count = 0
+    if "Category" in df.columns:
+        category_count = df["Category"].dropna().astype(str).nunique()
+
+    if category_count > 6:
+        print(
+            f"Skipping lapboard for event {event_id}: {category_count} categories exceeds limit of 6.",
+            file=sys.stderr,
+        )
+    else:
+        try:
+            draw_lapboard(c, width, height, df, bottom_limit_y=table_bottom_y - 10, landScape=landScape)
+        except Exception as e:
+            print(f"Lapboard draw error: {e}", file=sys.stderr)
 
     c.showPage()
 
