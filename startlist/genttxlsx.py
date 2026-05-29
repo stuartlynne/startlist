@@ -2,8 +2,27 @@ import sys
 from datetime import time
 import pandas as pd
 
-from libs.getranges import get_ranges
 from .filename import sanitize_filename_part
+
+
+def exact_ranges(bib_list):
+    if not bib_list:
+        return None
+
+    bibs = sorted(set(bib_list))
+    ranges = []
+    start = bibs[0]
+    end = start
+
+    for bib in bibs[1:]:
+        if bib == end + 1:
+            end = bib
+        else:
+            ranges.append(f"{start}" if start == end else f"{start}-{end}")
+            start = end = bib
+
+    ranges.append(f"{start}" if start == end else f"{start}-{end}")
+    return ",".join(ranges)
 
 
 def seconds_to_time(value):
@@ -45,6 +64,8 @@ class GenTTXLSX:
         }
 
     def add_participant(self, event_id, wave_id, wave_name, participant_data):
+        participant_data["wave_id"] = wave_id
+        participant_data["wave_name"] = wave_name
         self.events[self.event_id]['participants'].append(participant_data)
 
     def save(self, category_bib_ranges=None):
@@ -100,31 +121,17 @@ class GenTTXLSX:
             registration_ws.set_column(10, 14, 18)
 
             category_rows = []
-            for wave_id, wave in sorted(event['waves'].items(), key=lambda item: (item[1]['start_offset'] or 0, item[0])):
-                category_rows.append({
-                    "Category Type": "Wave",
-                    "Name": wave["wave_name"],
-                    "Gender": "Open",
-                    "Numbers": None,
-                    "Start Offset": None,
-                    "Race Laps": None,
-                    "Race Distance": None,
-                    "Race Minutes": None,
-                    "Publish": False,
-                    "Upload": False,
-                    "Series": False,
-                })
-
+            for wave_id, wave in event['waves'].items():
                 wave_participants = [
                     p for p in event['participants']
-                    if p.get('wave_name') == wave["wave_name"]
+                    if p.get('wave_id') == wave_id
                 ]
                 category_groups = {}
                 for participant in wave_participants:
                     key = (participant.get('category_code', ''), participant.get('gender', 'Open'))
                     category_groups.setdefault(key, []).append(participant.get('bib'))
 
-                if not category_groups:
+                if not category_groups and not event['participants']:
                     for category in wave.get("categories", []):
                         if len(category) >= 3:
                             _, category_name, category_gender = category[:3]
@@ -139,13 +146,13 @@ class GenTTXLSX:
                 for (category_name, gender), bibs in sorted(category_groups.items()):
                     clean_bibs = [b for b in bibs if isinstance(b, int)]
                     category_rows.append({
-                        "Category Type": "Component",
+                        "Category Type": "Wave",
                         "Name": category_name,
                         "Gender": gender,
-                        "Numbers": get_ranges(sorted(clean_bibs)) if clean_bibs else None,
+                        "Numbers": exact_ranges(clean_bibs),
                         "Start Offset": None,
-                        "Race Laps": None,
-                        "Race Distance": None,
+                        "Race Laps": wave["laps"],
+                        "Race Distance": wave["distance"],
                         "Race Minutes": None,
                         "Publish": True,
                         "Upload": True,

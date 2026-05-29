@@ -63,6 +63,8 @@ class GenTTPDF:
         }
 
     def add_participant(self, event_id, wave_id, wave_name, participant_data):
+        participant_data["wave_id"] = wave_id
+        participant_data["wave_name"] = wave_name
         self.events[self.event_id]['participants'].append(participant_data)
 
     def should_watermark(self, event_start_time):
@@ -88,11 +90,14 @@ class GenTTPDF:
         c.restoreState()
 
     def rider_detail_value(self, event, participant):
+        wave_id = participant.get("wave_id")
         wave_name = participant.get("wave_name")
-        wave = next(
-            (wave for wave in event["waves"].values() if wave["wave_name"] == wave_name),
-            None,
-        )
+        wave = event["waves"].get(wave_id)
+        if not wave:
+            wave = next(
+                (wave for wave in event["waves"].values() if wave["wave_name"] == wave_name),
+                None,
+            )
         if not wave:
             return ""
 
