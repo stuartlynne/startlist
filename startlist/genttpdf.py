@@ -29,13 +29,18 @@ def detect_interval_seconds(participants):
     return min(deltas)
 
 
+def format_clock_time(value, include_seconds=True):
+    return value.strftime("%H:%M:%S" if include_seconds else "%H:%M")
+
+
 class GenTTPDF:
-    def __init__(self, date, competition_name, competition_long_name, landscape=False, final=False):
+    def __init__(self, date, competition_name, competition_long_name, landscape=False, final=False, detail_column=None):
         self.date = date
         self.competition_name = competition_name
         self.competition_long_name = competition_long_name
         self.landscape = landscape
         self.final = final
+        self.detail_column = detail_column
         self.events = {}
 
     def add_event(self, event_id, event_name, event_start_time):
@@ -82,15 +87,40 @@ class GenTTPDF:
         c.drawCentredString(0, 0, "NOT FINAL")
         c.restoreState()
 
+    def rider_detail_value(self, event, participant):
+        wave_name = participant.get("wave_name")
+        wave = next(
+            (wave for wave in event["waves"].values() if wave["wave_name"] == wave_name),
+            None,
+        )
+        if not wave:
+            return ""
+
+        if self.detail_column == "laps":
+            laps = wave.get("laps")
+            return "" if laps is None else str(int(round(laps)))
+
+        if self.detail_column == "km":
+            distance = wave.get("distance")
+            laps = wave.get("laps") or 1
+            return "" if distance is None else str(int(round(distance)) * int(round(laps)))
+
+        return ""
+
     def build_slots(self, event):
         participants = sorted(
             event['participants'],
             key=lambda p: (p.get('start_sequence', 999999), p.get('bib') or 0),
         )
         if not participants:
-            return [], 60
+            return [], 60, True
 
         interval_seconds = detect_interval_seconds(participants)
+        include_clock_seconds = any(
+            int(round(p.get("start_time") or 0)) % 60 != 0
+            for p in participants
+            if p.get("start_time") is not None
+        )
         max_start = max(int(round(p.get("start_time") or 0)) for p in participants)
         extra_slots = max(10, 600 // max(interval_seconds, 1))
         slot_times = list(range(0, max_start + interval_seconds * extra_slots + 1, interval_seconds))
@@ -105,7 +135,7 @@ class GenTTPDF:
             participant = participant_by_start.get(start_time)
             if participant:
                 clock = participant.get("scheduled_start_time")
-                clock_text = clock.strftime("%H:%M:%S") if clock else ""
+                clock_text = format_clock_time(clock, include_clock_seconds) if clock else ""
                 slots.append({
                     "Stopwatch": format_elapsed_time(start_time),
                     "Bib": str(participant.get("bib") or ""),
@@ -113,12 +143,13 @@ class GenTTPDF:
                     "FirstName": str(participant.get("first_name") or ""),
                     "Notes/Delay": "",
                     "Start Time": clock_text,
+                    "Detail": self.rider_detail_value(event, participant),
                 })
             else:
                 event_start = event.get("event_start_time")
                 clock_text = ""
                 if event_start:
-                    clock_text = (event_start + timedelta(seconds=start_time)).strftime("%H:%M:%S")
+                    clock_text = format_clock_time(event_start + timedelta(seconds=start_time), include_clock_seconds)
                 slots.append({
                     "Stopwatch": format_elapsed_time(start_time),
                     "Bib": "",
@@ -126,10 +157,11 @@ class GenTTPDF:
                     "FirstName": "",
                     "Notes/Delay": "",
                     "Start Time": clock_text,
+                    "Detail": "",
                 })
-        return slots, interval_seconds
+        return slots, interval_seconds, include_clock_seconds
 
-    def pad_slots_for_pages(self, slots, interval_seconds, rows_per_page, event_start_time):
+    def pad_slots_for_pages(self, slots, interval_seconds, rows_per_page, event_start_time, include_clock_seconds=True):
         if not slots:
             return slots
 
@@ -144,7 +176,10 @@ class GenTTPDF:
             elapsed_seconds = last_elapsed_seconds + i * interval_seconds
             clock_text = ""
             if event_start_time:
-                clock_text = (event_start_time + timedelta(seconds=elapsed_seconds)).strftime("%H:%M:%S")
+                clock_text = format_clock_time(
+                    event_start_time + timedelta(seconds=elapsed_seconds),
+                    include_clock_seconds,
+                )
             slots.append({
                 "Stopwatch": format_elapsed_time(elapsed_seconds),
                 "Bib": "",
@@ -152,6 +187,7 @@ class GenTTPDF:
                 "FirstName": "",
                 "Notes/Delay": "",
                 "Start Time": clock_text,
+                "Detail": "",
             })
 
         return slots
@@ -169,9 +205,15 @@ class GenTTPDF:
             width, height = page_size
             c = canvas.Canvas(filename, pagesize=page_size)
 
-            slots, interval_seconds = self.build_slots(event)
+            slots, interval_seconds, include_clock_seconds = self.build_slots(event)
             rows_per_page = 30
-            slots = self.pad_slots_for_pages(slots, interval_seconds, rows_per_page, event["event_start_time"])
+            slots = self.pad_slots_for_pages(
+                slots,
+                interval_seconds,
+                rows_per_page,
+                event["event_start_time"],
+                include_clock_seconds=include_clock_seconds,
+            )
             total_pages = (len(slots) + rows_per_page - 1) // rows_per_page
             watermark = self.should_watermark(event["event_start_time"])
 
@@ -183,12 +225,16 @@ class GenTTPDF:
 
             columns = [
                 ("Stopwatch", 0.95 * inch),
-                ("Bib", 0.80 * inch),
+                ("Bib", 0.60 * inch),
                 ("LastName", 1.60 * inch),
                 ("FirstName", 1.60 * inch),
-                ("Notes/Delay", 1.70 * inch),
-                ("Start Time", 0.95 * inch),
+                ("Notes/Delay", 1.65 * inch if not include_clock_seconds else 1.35 * inch),
+                ("Start Time", 0.60 * inch if not include_clock_seconds else 0.90 * inch),
             ]
+            if self.detail_column == "laps":
+                columns.append(("Lap", 0.45 * inch))
+            elif self.detail_column == "km":
+                columns.append(("KM", 0.45 * inch))
 
             xs = [margin_left]
             for _, col_width in columns:
@@ -233,6 +279,9 @@ class GenTTPDF:
                     row["Notes/Delay"],
                     row["Start Time"],
                 ]
+                if self.detail_column in ("laps", "km"):
+                    values.append(row["Detail"])
+
                 fonts = [
                     ("Helvetica", 16),
                     ("Helvetica", 16),
@@ -241,11 +290,26 @@ class GenTTPDF:
                     ("Helvetica", 14),
                     ("Helvetica", 16),
                 ]
+                if self.detail_column in ("laps", "km"):
+                    fonts.append(("Helvetica", 16))
 
                 for i, value in enumerate(values):
                     font_name, font_size = fonts[i]
                     c.setFont(font_name, font_size)
-                    c.drawString(xs[i] + 2, y + row_height / 2 - 0.11 * inch, str(value))
+                    if i == 1:
+                        c.drawCentredString(
+                            xs[i] + (xs[i + 1] - xs[i]) / 2,
+                            y + row_height / 2 - 0.11 * inch,
+                            str(value),
+                        )
+                    elif self.detail_column in ("laps", "km") and i == len(values) - 1:
+                        c.drawCentredString(
+                            xs[i] + (xs[i + 1] - xs[i]) / 2,
+                            y + row_height / 2 - 0.11 * inch,
+                            str(value),
+                        )
+                    else:
+                        c.drawString(xs[i] + 2, y + row_height / 2 - 0.11 * inch, str(value))
 
             for page_num in range(total_pages):
                 if page_num:

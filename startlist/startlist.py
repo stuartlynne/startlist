@@ -23,7 +23,7 @@ from startlist.genpdf import GenPDF
 from startlist.genttpdf import GenTTPDF
 from startlist.genttxlsx import GenTTXLSX
 
-__version__ = "0.5.20"
+__version__ = "0.5.21"
 
 
 def format_date(input_date):
@@ -339,7 +339,17 @@ def synthesize_tt_entries(tt_rows):
 
     return synthetic_rows
 
-def export_startlists(host='localhost', date=None, name=None, output_formats=None, racedb_host=None, landscape=False, final=False, lap_abc=False):
+def export_startlists(
+    host='localhost',
+    date=None,
+    name=None,
+    output_formats=None,
+    racedb_host=None,
+    landscape=False,
+    final=False,
+    lap_abc=False,
+    tt_detail_column=None,
+):
     generators = []
 
     print('Output formats:', output_formats, file=sys.stderr)
@@ -407,7 +417,16 @@ def export_startlists(host='localhost', date=None, name=None, output_formats=Non
         if 'xlsx' in output_formats:
             generators.append(GenXLSX(date, competition_name, competition_long_name))
         if 'pdf' in output_formats:
-            tt_generators.append(GenTTPDF(date, competition_name, competition_long_name, landscape=landscape, final=final))
+            tt_generators.append(
+                GenTTPDF(
+                    date,
+                    competition_name,
+                    competition_long_name,
+                    landscape=landscape,
+                    final=final,
+                    detail_column=tt_detail_column,
+                )
+            )
         if 'cm' in output_formats:
             tt_generators.append(
                 GenTTXLSX(
@@ -780,6 +799,9 @@ def main():
     parser.add_argument('--info', action='store_true', help='Summary of Events/Waves/Categories')
     parser.add_argument('--bibs', action='store_true', help='Summary of Number Set Usage (aka bibs)')
     parser.add_argument('--lap_abc', action='store_true', help='Show A/B/C in lapboard.')
+    tt_detail_group = parser.add_mutually_exclusive_group()
+    tt_detail_group.add_argument('--laps', action='store_true', help='Add TT wave laps as a final PDF column.')
+    tt_detail_group.add_argument('--km', action='store_true', help='Add rounded TT wave distance as a final PDF column.')
     parser.add_argument('--landscape', action='store_true', help='Generate landscape PDF.')
     parser.add_argument('--final', action='store_true',
                         help='Mark PDFs as final (disable preliminary watermark).')
@@ -810,11 +832,13 @@ def main():
     landscape = args.landscape
     final = args.final
     lap_abc = args.lap_abc
+    tt_detail_column = "laps" if args.laps else "km" if args.km else None
 
     with AutoPagerEx(stderr=args.stderr, stderrdup=args.stderrdup, line_buffering=autopage.line_buffer_from_input()) as (sys.stdout, sys.stderr):
         try:
             export_startlists(args.host, date=formatted_date, name=args.name, output_formats=output_formats,
-                              racedb_host=args.crossmgr, landscape=landscape, final=final, lap_abc=lap_abc)
+                              racedb_host=args.crossmgr, landscape=landscape, final=final, lap_abc=lap_abc,
+                              tt_detail_column=tt_detail_column)
         except Exception as e:
             print(f"An error occurred: {e}", file=sys.stderr)
             traceback.print_exc(file=sys.stderr)
