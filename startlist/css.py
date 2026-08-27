@@ -47,6 +47,26 @@ thead {
 .select-tr { padding: 1px !important; text-align: center; width: 100%; }
 .select-thtd { padding: 1px !important; text-align: center; }
 
+.event-selector-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+}
+
+.event-selector-table {
+    width: max-content !important;
+    min-width: 100%;
+    margin-bottom: 0 !important;
+}
+
+.event-selector-table .select-thtd {
+    min-width: 72px;
+    white-space: normal;
+}
+
 .part-table {
     border-collapse: collapse;
     border: none !important;
@@ -210,4 +230,3 @@ input[type="text"] {
 
 
 """
-

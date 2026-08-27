@@ -131,33 +131,34 @@ class GenLeft:
             # made visible.
 
             # Generate the event selection table (static)
-            with self.tag('table', klass="table table-striped selection-table fs-s",):
-                if False:
-                    with self.tag('thead', klass='part-thead', ):
+            with self.tag('div', klass='event-selector-scroll'):
+                with self.tag('table', klass="table table-striped selection-table event-selector-table fs-s",):
+                    if False:
+                        with self.tag('thead', klass='part-thead', ):
+                            with self.tag('tr', klass="select-tr", style="width:100%;", ):
+                                with self.tag('th', klass="select-thtd", style="text-align:center",):
+                                    self.text('Start Time')
+                                for i in range(max_waves):
+                                    with self.tag('th', klass="select-thtd", style="text-align:left",):
+                                        self.text(f'Wave {chr(65 + i)}')  # Add "Wave A", "Wave B", etc. to header
+
+                    with self.tag('tbody', klass='part-tbody', ):
                         with self.tag('tr', klass="select-tr", style="width:100%;", ):
-                            with self.tag('th', klass="select-thtd", style="text-align:center",):
-                                self.text('Start Time')
-                            for i in range(max_waves):
-                                with self.tag('th', klass="select-thtd", style="text-align:left",):
-                                    self.text(f'Wave {chr(65 + i)}')  # Add "Wave A", "Wave B", etc. to header
+                            for event_id, event_info in self.parent.data.items():
+                                #print(f"Generating event row for {event_id} info {event_info}", file=sys.stderr)
+                                event_name = event_info['name'].replace("#", "")+'.'
+                                #XXevent_info_cell_id, XXevent_info_id, XXwave_table_all_id = self.parent.info_table_ids(event_id)
 
-                with self.tag('tbody', klass='part-tbody', ):
-                    with self.tag('tr', klass="select-tr", style="width:100%;", ):
-                        for event_id, event_info in self.parent.data.items():
-                            #print(f"Generating event row for {event_id} info {event_info}", file=sys.stderr)
-                            event_name = event_info['name'].replace("#", "")+'.'
-                            #XXevent_info_cell_id, XXevent_info_id, XXwave_table_all_id = self.parent.info_table_ids(event_id)
-
-                            event_info_cell_id = self.parent.event_info_cell_id(event_id)
-                            event_info_id = self.parent.event_info_id(event_id)
-                            wave_table_all_id = self.parent.wave_table_all_id(event_id)
-                            #print(f"Generating event row for {event_id} info {event_info} {event_info_cell_id} {event_info_id} {wave_table_all_id}", 
-                            #      file=sys.stderr)
-                            #with self.tag('td', klass="select-thtd", style="text-align:left",):
-                            #    self.text(event)
-                            with self.tag('td', klass="select-thtd", id=event_info_cell_id,
-                                          onclick=f"TET(['{event_info_cell_id}', '{event_info_id}', '{wave_table_all_id}'])", ):
-                                self.text(f"{event_name} {event_info['start_time'].strftime('%H:%M')}")
+                                event_info_cell_id = self.parent.event_info_cell_id(event_id)
+                                event_info_id = self.parent.event_info_id(event_id)
+                                wave_table_all_id = self.parent.wave_table_all_id(event_id)
+                                #print(f"Generating event row for {event_id} info {event_info} {event_info_cell_id} {event_info_id} {wave_table_all_id}", 
+                                #      file=sys.stderr)
+                                #with self.tag('td', klass="select-thtd", style="text-align:left",):
+                                #    self.text(event)
+                                with self.tag('td', klass="select-thtd", id=event_info_cell_id,
+                                              onclick=f"TET(['{event_info_cell_id}', '{event_info_id}', '{wave_table_all_id}'])", ):
+                                    self.text(f"{event_name} {event_info['start_time'].strftime('%H:%M')}")
             # Generate the Event Information table 
             for event_id, event_info in self.parent.data.items():
 
@@ -195,4 +196,3 @@ class GenLeft:
                               wave_data['distance'], wave_data['laps'], wave_data['minutes']) 
                              for wave_name, wave_data in event_info['waves'].items()]
                     #print(f"Generating event info table with ID: {event_info_id} {waves}", file=sys.stderr)
-

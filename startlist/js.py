@@ -14,6 +14,7 @@ function setBackgroundColor(elementId, color) {
     let element = document.getElementById(elementId);
     if (element) {
         element.style.backgroundColor = color;
+        element.scrollIntoView({block: 'nearest', inline: 'nearest'});
         console.log('setBackgroundColor:', elementId);
         return;
     }
