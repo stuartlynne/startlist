@@ -64,7 +64,29 @@ thead {
 
 .event-selector-table .select-thtd {
     min-width: 72px;
-    white-space: normal;
+}
+
+.event-select-cell {
+    border-right: 1px solid #b8b8b8;
+    padding: 2px 8px !important;
+    white-space: nowrap;
+}
+
+.event-select-cell:last-child {
+    border-right: 0;
+}
+
+.category-list {
+    line-height: 1.7;
+}
+
+.category-pill {
+    display: inline-block;
+    margin: 1px 3px 1px 0;
+    padding: 0 4px;
+    border-left: 3px solid #9aa7b0;
+    background: #f3f5f6;
+    white-space: nowrap;
 }
 
 .part-table {

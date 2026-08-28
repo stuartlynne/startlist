@@ -72,8 +72,10 @@ class GenLeft:
             with self.tag('td', klass='thtd-left', ):
                 self.text(details)
 
-            with self.tag('td', klass='thtd', style="text-align:left; ;  ", ):
-                self.text(', '.join(categories) if categories else '')
+            with self.tag('td', klass='thtd category-list', style="text-align:left; ;  ", ):
+                for category in categories:
+                    with self.tag('span', klass='category-pill'):
+                        self.text(category)
             
             with self.tag('td', klass='thtd', style="text-align:left;", ):
                 self.text(participant_counts)
@@ -156,7 +158,7 @@ class GenLeft:
                                 #      file=sys.stderr)
                                 #with self.tag('td', klass="select-thtd", style="text-align:left",):
                                 #    self.text(event)
-                                with self.tag('td', klass="select-thtd", id=event_info_cell_id,
+                                with self.tag('td', klass="select-thtd event-select-cell", id=event_info_cell_id,
                                               onclick=f"TET(['{event_info_cell_id}', '{event_info_id}', '{wave_table_all_id}'])", ):
                                     self.text(f"{event_name} {event_info['start_time'].strftime('%H:%M')}")
             # Generate the Event Information table 
