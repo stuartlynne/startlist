@@ -54,6 +54,7 @@ thead {
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
+    padding-bottom: 8px;
 }
 
 .event-selector-table {
