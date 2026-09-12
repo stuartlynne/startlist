@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 
 from autopage import argparse
 import autopage
+from openpyxl import load_workbook
 
 from libs.autopageex import AutoPagerEx
 from libs.getranges import get_ranges
@@ -63,6 +64,144 @@ def normalize_event_time(event_name, event_start_time):
         file=sys.stderr,
     )
     return event_start_time
+
+
+def normalize_callup_value(value):
+    """Normalize workbook/startlist values for robust matching."""
+    if value is None:
+        return ""
+    return re.sub(r"\s+", " ", str(value).strip()).upper()
+
+
+def normalize_callup_sheet_name(sheet_name):
+    """Use the sheet prefix before the optional gender suffix: 'Wave Name (Open)'."""
+    return normalize_callup_value(re.sub(r"\s+\((MEN|WOMEN|OPEN)\)\s*$", "", sheet_name, flags=re.IGNORECASE))
+
+
+def compact_callup_wave_key(value):
+    """Compact wave/category names for fallback matching across RaceDB/series labels."""
+    normalized = normalize_callup_sheet_name(value)
+    normalized = re.sub(r"\b(MEN|WOMEN|OPEN|WAVE)\b", "", normalized)
+    return re.sub(r"[^A-Z0-9]+", "", normalized)
+
+
+def callup_match_keys(first_name=None, last_name=None, license_code=None, uci_id=None):
+    keys = []
+    normalized_uci = normalize_callup_value(uci_id)
+    if normalized_uci:
+        keys.append(("uci", normalized_uci))
+
+    normalized_license = normalize_callup_value(license_code)
+    if normalized_license and normalized_license not in {"TEMP", "N/A", "NA"}:
+        keys.append(("license", normalized_license))
+
+    normalized_name = normalize_callup_value(f"{last_name or ''}, {first_name or ''}")
+    if normalized_name != ",":
+        keys.append(("name", normalized_name))
+
+    return keys
+
+
+def load_callups(callups_filename):
+    """Load series callup order keyed by wave-sheet prefix and rider identity."""
+    if not callups_filename:
+        return {}
+
+    wb = load_workbook(callups_filename, read_only=True, data_only=True)
+    callups = {}
+
+    for ws in wb.worksheets:
+        wave_key = normalize_callup_sheet_name(ws.title)
+        if not wave_key:
+            continue
+
+        header = None
+        header_row_num = None
+        for row_num, row in enumerate(ws.iter_rows(values_only=True), start=1):
+            normalized = [normalize_callup_value(cell) for cell in row]
+            if "POS" in normalized and "NAME" in normalized:
+                header = normalized
+                header_row_num = row_num
+                break
+
+        if not header:
+            print(f"Callups: no header row found in sheet {ws.title!r}; skipping", file=sys.stderr)
+            continue
+
+        col = {name: idx for idx, name in enumerate(header) if name}
+        sheet_callups = {}
+        order = 0
+
+        for row in ws.iter_rows(min_row=header_row_num + 1, values_only=True):
+            name = row[col["NAME"]] if "NAME" in col and col["NAME"] < len(row) else None
+            if not name:
+                continue
+
+            order += 1
+            license_code = row[col["LICENSE"]] if "LICENSE" in col and col["LICENSE"] < len(row) else None
+            uci_id = row[col["UCI ID"]] if "UCI ID" in col and col["UCI ID"] < len(row) else None
+
+            first_name = ""
+            last_name = ""
+            if "," in str(name):
+                last_name, first_name = [part.strip() for part in str(name).split(",", 1)]
+            else:
+                last_name = str(name).strip()
+
+            for key in callup_match_keys(first_name, last_name, license_code, uci_id):
+                sheet_callups.setdefault(key, order)
+
+        callups[wave_key] = sheet_callups
+        print(f"Callups: loaded {order} rows for {ws.title!r}", file=sys.stderr)
+
+    return callups
+
+
+def find_callups_for_wave(callups, wave_name):
+    """Find callups using exact, prefix, then compact fallback matching."""
+    wave_key = normalize_callup_sheet_name(wave_name)
+    if wave_key in callups:
+        return callups[wave_key]
+
+    prefix_matches = [
+        sheet_callups
+        for sheet_key, sheet_callups in callups.items()
+        if sheet_key.startswith(wave_key) or wave_key.startswith(sheet_key)
+    ]
+    if len(prefix_matches) == 1:
+        return prefix_matches[0]
+
+    compact_wave_key = compact_callup_wave_key(wave_name)
+    compact_matches = [
+        sheet_callups
+        for sheet_key, sheet_callups in callups.items()
+        if compact_callup_wave_key(sheet_key) == compact_wave_key
+    ]
+    if len(compact_matches) == 1:
+        return compact_matches[0]
+
+    return None
+
+
+def apply_callup_position(participant, wave_name, callups):
+    """Annotate a participant with a callup position if their wave has one."""
+    participant['callup_position'] = None
+    if not callups:
+        return
+
+    wave_callups = find_callups_for_wave(callups, wave_name)
+    if not wave_callups:
+        return
+
+    for key in callup_match_keys(
+        participant.get('first_name'),
+        participant.get('last_name'),
+        participant.get('license_code'),
+        participant.get('uci_id'),
+    ):
+        if key in wave_callups:
+            participant['callup_position'] = wave_callups[key]
+            return
 
 
 def log_sql(query, params, debug=True):
@@ -349,12 +488,15 @@ def export_startlists(
     final=False,
     lap_abc=False,
     tt_detail_column=None,
+    callups_filename=None,
+    series_all=False,
 ):
     generators = []
 
     print('Output formats:', output_formats, file=sys.stderr)
     debug = False
     try:
+        callups = load_callups(callups_filename) if callups_filename else {}
 
         # get competition id based on date or name
         conn, cur, competition_id, competition_name, competition_long_name, competition_start_date, number_set_id = find_competition(host, name, date) 
@@ -405,7 +547,7 @@ def export_startlists(
         if 'html' in output_formats:
             generators.append(GenHTML(host, competition_name, date, ranges, ))
         if 'cm' in output_formats:
-            generators.append(GenCM(racedb_host, date, competition_id, competition_name, ))
+            generators.append(GenCM(racedb_host, date, competition_id, competition_name, series_all=series_all))
         if 'audit' in output_formats:
             generators.append(GenAudit(racedb_host, date, competition_id, competition_long_name, ))
         if 'bibs' in output_formats:
@@ -552,6 +694,7 @@ def export_startlists(
                           'bib': bib,
                           'first_name': first_name,
                           'last_name': last_name,
+                          'license_code': license_code,
                           'team_name': team_name,
                           'wave_name': wave_name,
                           'category_code': category_code,
@@ -564,6 +707,7 @@ def export_startlists(
                           'paid': paid,
                           'confirmed': confirmed,
                         }
+                        apply_callup_position(formatted_participant, wave_name, callups)
                         #print(f"Adding participant: {formatted_participant}", file=sys.stderr)
                         for generator in generators:
                             generator.add_participant(None, wave_id, wave_name, formatted_participant)
@@ -805,9 +949,12 @@ def main():
     parser.add_argument('--landscape', action='store_true', help='Generate landscape PDF.')
     parser.add_argument('--final', action='store_true',
                         help='Mark PDFs as final (disable preliminary watermark).')
+    parser.add_argument('--callups', type=str, help='XLSX series results file for mass-start callup ordering.')
     parser.add_argument('--stderr', "--debug", action='store_true', help='Enable stderr output.')
     parser.add_argument("--stderrdup", action='store_true', help='Send stderr to stdout.')
     parser.add_argument("--crossmgr", "--cm", required=False, help="The RaceDB host for downloading files.")
+    parser.add_argument('--series_all', action='store_true',
+                        help='Force Series TRUE for every row in CrossMgr category worksheets.')
 
     args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
 
@@ -838,7 +985,8 @@ def main():
         try:
             export_startlists(args.host, date=formatted_date, name=args.name, output_formats=output_formats,
                               racedb_host=args.crossmgr, landscape=landscape, final=final, lap_abc=lap_abc,
-                              tt_detail_column=tt_detail_column)
+                              tt_detail_column=tt_detail_column, callups_filename=args.callups,
+                              series_all=args.series_all)
         except Exception as e:
             print(f"An error occurred: {e}", file=sys.stderr)
             traceback.print_exc(file=sys.stderr)

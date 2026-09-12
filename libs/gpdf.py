@@ -183,18 +183,16 @@ def page1_table(c, width, height, df, landScape=False, category_bib_ranges=None 
         category_bib_ranges = {}
     styles = [
         # **Header Row**
-        ("ALIGN", (0, 0), (0, 0), "LEFT"),
-        ("ALIGN", (1, 0), (1, 0), "CENTER"),
+        ("ALIGN", (0, 0), (0, 0), "CENTER"),
+        ("ALIGN", (1, 0), (1, 0), "LEFT"),
         ("ALIGN", (2, 0), (2, 0), "LEFT"),
-        ("ALIGN", (3, 0), (3, 0), "LEFT"),
-        ("ALIGN", (4, 0), (4, 0), "RIGHT"),
+        ("ALIGN", (3, 0), (3, 0), "RIGHT"),
 
         # **Data Rows**
-        ("ALIGN", (0, 1), (0, -1), "RIGHT"),
-        ("ALIGN", (1, 1), (1, -1), "CENTER"),
+        ("ALIGN", (0, 1), (0, -1), "CENTER"),
+        ("ALIGN", (1, 1), (1, -1), "LEFT"),
         ("ALIGN", (2, 1), (2, -1), "LEFT"),
-        ("ALIGN", (3, 1), (3, -1), "LEFT"),
-        ("ALIGN", (4, 1), (4, -1), "RIGHT"),
+        ("ALIGN", (3, 1), (3, -1), "RIGHT"),
 
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTSIZE", (0, 0), (-1, 0), 14),  # **Larger Font for Header**
@@ -205,7 +203,7 @@ def page1_table(c, width, height, df, landScape=False, category_bib_ranges=None 
     ]
     offset_style = ParagraphStyle(name="WrapOffset", fontName="Helvetica-Bold",
                                   fontSize=14, leading=18, alignment=TA_CENTER)
-    table_data = [["Wave", Paragraph("Start Offset", offset_style), "Details", "Categories", "Starters"]]
+    table_data = [[Paragraph("Start Offset", offset_style), "Details", "Categories", "Starters"]]
     total_starters = 0
     for i, (wave, wave_df) in enumerate(df.groupby("Wave")):
         print(f'Wave row[{i}] {wave}', file=sys.stderr)
@@ -219,8 +217,9 @@ def page1_table(c, width, height, df, landScape=False, category_bib_ranges=None 
         print(f"Wave  wave_df: Minutes {wave_df['Minutes'].iloc[0]}", file=sys.stderr)
 
         print(f'Wave row[{i}] Extra', file=sys.stderr)
-        styles.append(("LINEBELOW", (0, 2*i + 1), (-1, 2*i + 1), 2, colors.whitesmoke))
-        table_data.append(["", "", "", "", ""])  # **Empty row for spacing**
+        spacer_row = len(table_data)
+        styles.append(("LINEBELOW", (0, spacer_row), (-1, spacer_row), 2, colors.whitesmoke))
+        table_data.append(["", "", "", ""])  # **Empty row for spacing**
 
         # **Extract formatted categories (already includes gender)**
         formatted_categories = wave_df["Categories"].iloc[0]
@@ -253,6 +252,11 @@ def page1_table(c, width, height, df, landScape=False, category_bib_ranges=None 
         #    details_text = f"{minutes} <b>m</b><br/>"
 
         details_style = ParagraphStyle(name="BoldDetails", fontSize=14, leading=14)
+        wave_title_style = ParagraphStyle(
+            name="WaveTitle",
+            parent=details_style,
+            fontName="Helvetica-Bold",
+        )
 
         # Extract fields
         d = wave_df["Distance"].iloc[0] if "Distance" in wave_df else None
@@ -270,22 +274,25 @@ def page1_table(c, width, height, df, landScape=False, category_bib_ranges=None 
             details_text = "–"
 
         details_paragraph = Paragraph(details_text, details_style)
-        wave_paragraph = Paragraph(wave, details_style)
+        wave_paragraph = Paragraph(wave, wave_title_style)
         categories_paragraph = Paragraph(formatted_categories, details_style)
         start_offset = round(wave_df['Start Offset'].iloc[0]//60)
         print(f"Start Offset: {start_offset} AAAAAAAA", file=sys.stderr)
         #start_offset = round(wave_df['Start Offset']//60)
         #print(f"Start Offset: {start_offset} BBBBBBBB", file=sys.stdout)
 
+        wave_row = len(table_data)
+        table_data.append([wave_paragraph, "", "", ""])
+        styles.append(("SPAN", (0, wave_row), (-1, wave_row)))
+        styles.append(("ALIGN", (0, wave_row), (-1, wave_row), "LEFT"))
         table_data.append([
-            wave_paragraph,  # Wave
             f"{wave_df['Start Offset'].iloc[0]//60:.0f}:00",  # Start Offset formatted as "0:00"
             details_paragraph,  # **Bold "km" and "laps" with stacking + extra spacing**
             categories_paragraph,  # **Categories stacked vertically**
             wave_starters  # Number of starters
         ])
 
-    colWidths = [50, 80, 100, 320, 80] if landScape else [50, 80, 70, 240, 70] 
+    colWidths = [90, 110, 350, 80] if landScape else [90, 80, 270, 70]
     table = Table(table_data, colWidths=colWidths)  # **Wider column for spacing**
     styles.append(("ROWHEIGHTS", (0, 1), (-1, -1), [100] * (len(table_data) - 1)))
     table.setStyle(TableStyle(styles))

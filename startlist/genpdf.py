@@ -9,6 +9,18 @@ from libs.gpdf import generate_pdf, render_first_page
 from .filename import sanitize_filename_part
 
 
+def participant_sort_key(participant):
+    callup_position = participant.get("callup_position")
+    if callup_position is not None:
+        return (0, callup_position)
+    bib = participant.get("bib")
+    try:
+        bib = int(bib)
+    except (TypeError, ValueError):
+        bib = float("inf")
+    return (1, bib)
+
+
 class GenPDF:
     def __init__(self, date, competition_name, competition_long_name, landscape=False, final=False, lap_abc=False):
         print('GenPDF:', date, competition_name, competition_long_name, file=sys.stdout)
@@ -89,11 +101,7 @@ class GenPDF:
 
                 print(f"  Wave ID: {wave_id}, Name: {wave['wave_name']}, Categories: {wave_categories}", file=sys.stderr)
 
-                # **Sort participants by Bib Number (Handle missing values as "N/A")**
-                sorted_participants = sorted(
-                    wave["participants"],
-                    key=lambda p: int(p["bib"]) if p["bib"] and p["bib"] != "N/A" else float("inf")  # Ensure "N/A" goes last
-                )
+                sorted_participants = sorted(wave["participants"], key=participant_sort_key)
 
                 for participant in sorted_participants:
                     # **Find correct category for participant (Category + Gender)**

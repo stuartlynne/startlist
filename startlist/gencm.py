@@ -10,12 +10,13 @@ from urllib.parse import urljoin
 from .filename import sanitize_filename_part
 
 class GenCM:
-    def __init__(self, racedb_host, date, competition_id, competition_name):
+    def __init__(self, racedb_host, date, competition_id, competition_name, series_all=False):
         print('GenCM:', racedb_host, date, competition_id, competition_name, file=sys.stderr)
         self.racedb_host = racedb_host
         self.date = date
         self.competition_id = competition_id
         self.competition_name = competition_name
+        self.series_all = series_all
         self.events = {}
 
     def add_event(self, event_id, event_name, event_start_time):
@@ -28,6 +29,30 @@ class GenCM:
 
     def add_participant(self, event_id, wave_id, wave_name, participant_data):
         pass
+
+    def force_series_all(self, file_name):
+        workbook = openpyxl.load_workbook(file_name)
+        sheet_name = '--CrossMgr-Categories'
+        if sheet_name not in workbook.sheetnames:
+            print(f"Series all requested but {sheet_name} not found in {file_name}", file=sys.stderr)
+            return
+
+        worksheet = workbook[sheet_name]
+        series_col = None
+        for cell in worksheet[1]:
+            if cell.value == 'Series':
+                series_col = cell.column
+                break
+
+        if series_col is None:
+            print(f"Series all requested but Series column not found in {file_name}", file=sys.stderr)
+            return
+
+        for row in range(2, worksheet.max_row + 1):
+            worksheet.cell(row=row, column=series_col, value=True)
+
+        workbook.save(file_name)
+        print(f"Forced Series TRUE in {file_name}", file=sys.stderr)
 
     def save(self, category_bib_ranges=None):
         #for i, event_id in enumerate(self.events, 1):
@@ -46,7 +71,8 @@ class GenCM:
                 file_name = f"{self.date}-{competition_slug}-{event_slug}.xlsx"
                 with open(file_name, "wb") as file:
                     file.write(response.content)
+                if self.series_all:
+                    self.force_series_all(file_name)
                 print(f"Downloaded event {event_id} as {file_name}", file=sys.stdout)
             else:
                 print(f"Failed to download event {self.event_id} from {url}", file=sys.stdout)
-

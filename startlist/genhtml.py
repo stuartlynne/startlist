@@ -16,6 +16,19 @@ from .toggle import toggle
 from .css import css
 from .filename import sanitize_filename_part
 
+
+def participant_sort_key(participant):
+    callup_position = participant.get("callup_position")
+    if callup_position is not None:
+        return (0, callup_position)
+    bib = participant.get("bib")
+    try:
+        bib = int(bib)
+    except (TypeError, ValueError):
+        bib = float("inf")
+    return (1, bib)
+
+
 class GenHTML:
 
     def clean_id(self, id):
@@ -167,6 +180,9 @@ class GenHTML:
             self.right.generate_right()
 
     def save(self, category_bib_ranges=None):
+        for event_info in self.data.values():
+            for wave_data in event_info['waves'].values():
+                wave_data['participants'].sort(key=participant_sort_key)
         self.generate_html()
         html_output = indent(self.doc.getvalue())
         #output_filename = f'startlists_{self.competition_name.replace(" ", "_")}.html'
