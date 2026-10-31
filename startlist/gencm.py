@@ -30,6 +30,49 @@ class GenCM:
     def add_participant(self, event_id, wave_id, wave_name, participant_data):
         pass
 
+    def repair_properties(self, file_name):
+        """Repair RaceDB exports missing the new minimum-lap-time value."""
+        # TEMPORARY: remove this workaround and its save() call when RaceDB
+        # fixes the missing Min Possible Lap Time value in its XLSX export.
+        workbook = openpyxl.load_workbook(file_name)
+        try:
+            if '--CrossMgr-Properties' not in workbook.sheetnames:
+                return
+            worksheet = workbook['--CrossMgr-Properties']
+            headers = [cell.value for cell in worksheet[1]]
+            values = [cell.value for cell in worksheet[2]]
+            # openpyxl pads rows to the worksheet width. Trim trailing blanks
+            # before comparing; legitimate optional blanks also shorten rows,
+            # so a length mismatch alone must never trigger this repair.
+            while headers and headers[-1] is None:
+                headers.pop()
+            while values and values[-1] is None:
+                values.pop()
+            if len(headers) == len(values):
+                return
+            if 'Min Possible Lap Time' not in headers or 'Win and Out' not in headers:
+                return
+            minimum_col = headers.index('Min Possible Lap Time') + 1
+            win_col = headers.index('Win and Out') + 1
+            # In the broken export, Use SFTP occupies the minimum-lap-time
+            # cell, and the Win and Out boolean is one column too far left.
+            if not (
+                headers[minimum_col - 2] == 'RFID Option'
+                and headers[minimum_col] == 'Use SFTP'
+                and type(worksheet.cell(2, minimum_col).value) is bool
+                and type(worksheet.cell(2, win_col - 1).value) is bool
+                and isinstance(worksheet.cell(2, win_col).value, str)
+                and worksheet.cell(2, win_col).value.strip().upper() not in {'', 'TRUE', 'FALSE'}
+            ):
+                return
+            for col in range(len(headers), minimum_col, -1):
+                worksheet.cell(2, col).value = worksheet.cell(2, col - 1).value
+            worksheet.cell(2, minimum_col).value = None
+            workbook.save(file_name)
+            print(f'Repaired shifted CrossMgr properties in {file_name}', file=sys.stderr)
+        finally:
+            workbook.close()
+
     def force_series_all(self, file_name):
         workbook = openpyxl.load_workbook(file_name)
         sheet_name = '--CrossMgr-Categories'
@@ -71,6 +114,7 @@ class GenCM:
                 file_name = f"{self.date}-{competition_slug}-{event_slug}.xlsx"
                 with open(file_name, "wb") as file:
                     file.write(response.content)
+                self.repair_properties(file_name)
                 if self.series_all:
                     self.force_series_all(file_name)
                 print(f"Downloaded event {event_id} as {file_name}", file=sys.stdout)
